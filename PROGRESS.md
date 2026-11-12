@@ -20,7 +20,7 @@ Catatan Phase 1:
 - URL tak dikenal mengembalikan HTTP 404 dengan halaman ber-CSS (lihat `DECISIONS.md` ASUMSI-009).
 - `notFound()` dari halaman streaming masih 200 (ASUMSI-009b) — diperbaiki di Phase 8.
 - Docker belum terpasang di mesin dev; Phase 2 butuh Postgres/Redis.
-- Belum ada commit Git (repo di-init, working tree belum di-commit).
+- Commit awal: `86b2a54 chore: phase 1 scaffold`.
 
 ## Phase 2 — Database
 
