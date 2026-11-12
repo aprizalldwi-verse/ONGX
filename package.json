@@ -13,6 +13,11 @@
     "lint": "pnpm -r --if-present lint",
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "pnpm -r --if-present test",
+    "db:generate": "pnpm --filter @ongx/db generate",
+    "db:migrate": "pnpm --filter @ongx/db migrate",
+    "db:deploy": "pnpm --filter @ongx/db deploy",
+    "db:seed": "pnpm --filter @ongx/db seed",
+    "db:studio": "pnpm --filter @ongx/db studio",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "husky"
@@ -20,6 +25,16 @@
   "lint-staged": {
     "*.{ts,tsx,js,mjs,json,md,css}": "prettier --write",
     "*.{ts,tsx}": "eslint --fix --max-warnings=0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@parcel/watcher",
+      "@prisma/client",
+      "@prisma/engines",
+      "@swc/core",
+      "esbuild",
+      "prisma"
+    ]
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",

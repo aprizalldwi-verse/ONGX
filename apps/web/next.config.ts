@@ -15,7 +15,8 @@ const nextConfig: NextConfig = {
   // Lint is gated separately by `pnpm lint` (ESLint 9 flat config); Next's legacy
   // plugin detection only understands eslintrc and emits a false warning here.
   eslint: { ignoreDuringBuilds: true },
-  transpilePackages: ["@ongx/ui", "@ongx/shared"],
+  transpilePackages: ["@ongx/ui", "@ongx/shared", "@ongx/db"],
+  serverExternalPackages: ["@prisma/client", "ioredis"],
   images: {
     remotePatterns: [
       {

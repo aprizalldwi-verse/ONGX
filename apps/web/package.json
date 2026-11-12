@@ -11,8 +11,10 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@ongx/db": "workspace:*",
     "@ongx/shared": "workspace:*",
     "@ongx/ui": "workspace:*",
+    "ioredis": "5.11.1",
     "lucide-react": "0.545.0",
     "next": "15.5.29",
     "next-intl": "4.15.0",

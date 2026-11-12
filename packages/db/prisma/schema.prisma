@@ -1,0 +1,200 @@
+// ONGX schema. Metadata-only: no video files, no stream URLs. `WatchOffer` points at
+// official providers; `Source.OWN` exists so the same tables can hold owned content later.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Source {
+  TMDB
+  ANILIST
+  OWN
+}
+
+enum Kind {
+  MOVIE
+  SERIES
+  EPISODE
+}
+
+enum TitleStatus {
+  DRAFT
+  LIVE
+  BROKEN
+  GONE
+}
+
+enum OfferType {
+  FLATRATE
+  FREE
+  ADS
+  RENT
+  BUY
+}
+
+enum CreditRole {
+  CAST
+  CREW
+}
+
+enum SyncStatus {
+  QUEUED
+  RUNNING
+  SUCCESS
+  FAILED
+}
+
+model Title {
+  id           String      @id @default(cuid())
+  slug         String      @unique
+  source       Source
+  kind         Kind
+  remoteId     String
+  titleId      String
+  titleEn      String?
+  titleNative  String?
+  synopsis     String?
+  year         Int?
+  releasedAt   DateTime?
+  durationSec  Int?
+  rating       Float?
+  voteCount    Int?
+  popularity   Float?
+  posterPath   String
+  backdropPath String?
+  trailerKey   String?
+  ageRating    String?
+  country      String?
+  language     String?
+  status       TitleStatus @default(LIVE)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  genres   TitleGenre[]
+  credits  Credit[]
+  offers   WatchOffer[]
+  episodes Episode[]
+
+  @@unique([source, kind, remoteId])
+  @@index([kind, status, popularity(sort: Desc)])
+  @@index([releasedAt(sort: Desc)])
+  @@index([year])
+}
+
+model Genre {
+  id     String @id @default(cuid())
+  slug   String @unique
+  nameId String
+  nameEn String
+  tmdbId Int?   @unique
+
+  titles TitleGenre[]
+}
+
+model TitleGenre {
+  titleId String
+  genreId String
+
+  title Title @relation(fields: [titleId], references: [id], onDelete: Cascade)
+  genre Genre @relation(fields: [genreId], references: [id], onDelete: Cascade)
+
+  @@id([titleId, genreId])
+  @@index([genreId])
+}
+
+model Person {
+  id        String @id @default(cuid())
+  slug      String @unique
+  name      String
+  imagePath String?
+  tmdbId    Int?   @unique
+
+  credits Credit[]
+}
+
+model Credit {
+  id       String     @id @default(cuid())
+  titleId  String
+  personId String
+  role     CreditRole
+  label    String?
+  position Int        @default(0)
+
+  title  Title  @relation(fields: [titleId], references: [id], onDelete: Cascade)
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@unique([titleId, personId, role, label])
+  @@index([personId])
+  @@index([titleId, role, position])
+}
+
+model WatchOffer {
+  id           String    @id @default(cuid())
+  titleId      String
+  region       String
+  providerId   String
+  providerName String
+  offerType    OfferType
+  url          String
+  logoPath     String?
+  updatedAt    DateTime  @updatedAt
+
+  title Title @relation(fields: [titleId], references: [id], onDelete: Cascade)
+
+  @@unique([titleId, region, providerId, offerType])
+  @@index([region, offerType])
+}
+
+model Episode {
+  id          String   @id @default(cuid())
+  titleId     String
+  season      Int
+  number      Int
+  name        String
+  synopsis    String?
+  airDate     DateTime?
+  durationSec Int?
+  stillPath   String?
+
+  title Title @relation(fields: [titleId], references: [id], onDelete: Cascade)
+
+  @@unique([titleId, season, number])
+  @@index([titleId, season, number])
+}
+
+model AdminUser {
+  id           String    @id @default(cuid())
+  username     String    @unique
+  passwordHash String
+  createdAt    DateTime  @default(now())
+  lastLoginAt  DateTime?
+}
+
+model Redirect {
+  id         String   @id @default(cuid())
+  fromPath   String   @unique
+  toPath     String
+  statusCode Int      @default(301)
+  createdAt  DateTime @default(now())
+}
+
+model SyncJob {
+  id         String     @id @default(cuid())
+  source     Source
+  status     SyncStatus @default(QUEUED)
+  startedAt  DateTime   @default(now())
+  finishedAt DateTime?
+  itemsIn    Int        @default(0)
+  itemsOut   Int        @default(0)
+  error      String?
+  meta       Json?
+
+  @@index([source, startedAt(sort: Desc)])
+  @@index([status])
+}

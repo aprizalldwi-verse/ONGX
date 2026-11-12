@@ -29,12 +29,21 @@ pnpm lint         # ESLint semua workspace
 pnpm typecheck    # tsc --noEmit semua workspace
 pnpm test         # Vitest semua workspace
 pnpm format       # Prettier
+
+pnpm db:generate  # generate Prisma client
+pnpm db:migrate   # prisma migrate dev (butuh Postgres hidup)
+pnpm db:deploy    # prisma migrate deploy (produksi)
+pnpm db:seed      # seed 24 genre + admin (idempotent)
+pnpm db:studio    # Prisma Studio
 ```
+
+Health check: `GET /api/health` — 200 `{status:"ok"|"degraded"}`, 503 bila DB/Redis down.
 
 ## Struktur
 
 ```
 apps/web         Next.js 15 App Router
+packages/db      Prisma schema, migration, seed
 packages/ui      primitif shadcn/ui + util
 packages/shared  tipe, util, format
 docker-compose.yml

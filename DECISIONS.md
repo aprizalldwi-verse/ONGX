@@ -59,3 +59,22 @@ locale lain ditolak di level router, bukan dirender sebagai halaman kosong.
 
 ASUMSI-013: `next-intl` dipakai tanpa `[locale]` prefix untuk admin nanti; panel admin tetap berada
 di bawah `[locale]` agar satu root layout dan satu pipeline i18n.
+
+ASUMSI-014: Prisma dipin ke **6.19.3** (bukan 7/8) — brief menetapkan Prisma 6, dan rilis 8 masih
+RC. Client digenerate di lokasi default (`node_modules/@prisma/client`) agar Next bisa
+mengeksternalkannya lewat `serverExternalPackages`, alih-alih output kustom yang ikut di-bundle.
+
+ASUMSI-015: Migrasi awal dibuat dengan `prisma migrate diff --from-empty` sehingga SQL dan
+`migration_lock.toml` masuk repo tanpa perlu Postgres hidup. `migrate deploy` dijalankan setelah
+database tersedia. Seed idempotent (upsert per slug/username) supaya aman diulang di CI/VPS.
+`ADMIN_PASS` hanya dipakai sekali untuk menghasilkan hash; hash hasilnya dicetak ke log agar bisa
+disimpan ke `ADMIN_PASS_HASH`.
+
+ASUMSI-016: `/api/health` mengembalikan 200 untuk `ok` dan `degraded` (DB/Redis belum
+dikonfigurasi), 503 hanya bila salah satu probe benar-benar `down`. Tujuannya: uptime monitor tidak
+merah di mesin dev yang belum punya Redis, tetapi tetap gagal saat dependensi yang dikonfigurasi
+tidak bisa dihubungi.
+
+ASUMSI-017: `.husky/pre-commit` memakai `lint-staged --max-arg-length 5000` — batas panjang
+command line Windows (±8191 karakter) terlampaui saat 109 file di-stage sekaligus, sehingga
+prettier/eslint gagal sebelum sempat memeriksa file.

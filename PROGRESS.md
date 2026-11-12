@@ -24,7 +24,14 @@ Catatan Phase 1:
 
 ## Phase 2 — Database
 
-- [ ] (belum)
+- [x] `packages/db`: Prisma 6 schema (Title, Genre, TitleGenre, Person, Credit, WatchOffer,
+      Episode, AdminUser, Redirect, SyncJob) + enum `Source`/`Kind`/`OfferType`/`CreditRole`
+- [x] Migration awal `20261112000000_init` (SQL digenerate via `migrate diff`, tanpa DB hidup)
+- [x] Seed idempotent: 24 genre (nama id+en) + admin dari `ADMIN_PASS`/`ADMIN_PASS_HASH`
+- [x] Prisma client singleton (`@ongx/db`) + guard `server-only` di web
+- [x] `/api/health` (DB + Redis, 200/503) + unit test laporan health
+- [ ] Terapkan migrasi ke Postgres lokal (menunggu Docker Desktop terpasang)
+- [ ] Jalankan seed + verifikasi `/api/health` = `ok`
 
 ## Phase 3 — TMDB adapter
 
