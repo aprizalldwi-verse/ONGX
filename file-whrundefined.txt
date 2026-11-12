@@ -1,0 +1,434 @@
+# ONGX — Build Brief & Agent Prompt
+**File:** `ONGX-PROMPT.md`
+**Peran kamu:** Senior Fullstack Engineer (10+ tahun), spesialis Next.js App Router, media streaming, SEO teknis, dan monetisasi iklan pada situs traffic tinggi.
+**Target:** Bangun produk produksi-ready. Bukan prototipe. Bukan mockup.
+**Bahasa UI:** Indonesia (default) + Inggris. **Bahasa kode/komentar:** Inggris.
+
+---
+
+## 0. ATURAN KERJA (BACA DULU)
+
+1. Kerjakan berurutan sesuai Fase di §17. Jangan lompat fase.
+2. Setiap fase selesai → jalankan `pnpm build` + `pnpm lint` + `pnpm test`. Wajib hijau sebelum lanjut.
+3. Jangan tanya klarifikasi untuk hal yang sudah diatur di dokumen ini. Ambil keputusan, tulis di `DECISIONS.md`.
+4. Semua string UI lewat i18n. Zero hardcoded copy.
+5. Zero `any`. Zero `@ts-ignore`. TypeScript strict.
+6. Semua integrasi eksternal dibungkus adapter di `src/lib/sources/*` dengan kontrak interface yang sama. Bila upstream berubah, hanya adapter yang disentuh.
+7. Jangan pernah hardcode ID zona iklan di komponen. Semua dari `src/config/ads.ts` + env.
+8. Setiap rute publik harus punya `loading.tsx`, `error.tsx`, dan `not-found.tsx`.
+9. Situs harus tetap bisa dipakai dengan JS sebagian mati (SSR-first, progressive enhancement).
+10. Bila butuh asumsi, catat di `DECISIONS.md` dengan format `ASUMSI-###: <isi> — <alasan>`.
+
+---
+
+## 1. PRODUK
+
+**Nama:** ONGX
+**Tagline:** `Nonton tanpa ribet.`
+**Posisi:** Portal streaming agregator dua-vertikal:
+- **ONGX JAV** — katalog Jepang (sumber: missav)
+- **ONGX FILM** — film, series, anime, drama (sumber: idlix)
+
+**Model bisnis:** 100% iklan (Monetag). Tanpa login wajib. Tanpa paywall.
+**Pengguna:** mobile-first, mayoritas Android, jaringan 3G/4G tidak stabil, datang dari Google & social.
+**KPI yang dioptimasi:** LCP < 2.0s di 4G, sesi > 3 halaman, CTR slot iklan, rasio bounce < 55%.
+
+**Non-goal v1:** komentar, login OAuth, aplikasi native, subtitle upload sendiri, transcode video.
+
+---
+
+## 2. SUMBER DATA
+
+### 2.1 Upstream A — missav
+- Base: `https://missav.live`
+- Listing: `/{lang}` , `/{lang}/new` , `/{lang}/release` , `/{lang}/uncensored-leak` , `/{lang}/today-hot`
+- Detail: `/{lang}/{code}` (code lowercase, mis. `dldss-583`)
+- Taksonomi: `/{lang}/genres` , `/{lang}/actresses` , `/{lang}/makers`
+- Cover: `https://fourhoi.com/{code}/cover-t.jpg` (thumb), `cover.jpg` (besar)
+- Stream: HLS `.m3u8` di `surrit.com`, UUID diekstrak dari HTML detail.
+- Tanpa API resmi. **Cloudflare aktif.**
+
+### 2.2 Upstream B — idlix
+- Base: `https://z2.idlixku.com`
+- Listing: `/movie` , `/series` , `/genre/{g}` , `/country/{c}` , `/year/{y}`
+- Detail: `/movie/{slug}` , `/series/{slug}`
+- Data: JSON internal `/api/movies`, `/api/series`, `/api/search?q=`
+- Stream: gate token → redeem → `majorplay.net/*.json` (`.m3u8` + `.vtt`). Delay gate 15 detik.
+- **Cloudflare TLS-fingerprint blocking.** `fetch()` Node biasa kena 403. Butuh stealth browser.
+- Referensi implementasi: `github.com/annurdien/IDLIX-API` (MIT). Boleh dijadikan acuan, tulis ulang agar sesuai arsitektur kita.
+
+### 2.3 Aturan integrasi
+- Normalisasi semua entitas ke skema internal (§5). Upstream ID hanya disimpan di `ExternalRef`.
+- **Jangan** tampilkan iframe upstream sebagai satu-satunya cara nonton. Wajib ada dua tier:
+  - **Tier 1 (default):** player sendiri, HLS.js + `m3u8` hasil resolve, kontrol kualitas, subtitle `.vtt`, resume posisi.
+  - **Tier 2 (fallback):** iframe `/{lang}/{code}` atau `?play=1` bila resolve gagal / CORS / 403.
+- Semua gambar lewat proxy `/_img?src=` (whitelist domain) + `sharp` resize + `Cache-Control: public, max-age=604800, immutable`. Anti-hotlink.
+- Rate limit per IP ke upstream: 60 req/menit. Backoff eksponensial 3x. User-Agent rotasi dari pool 5 UA desktop modern.
+- Hormati `robots.txt` upstream untuk area yang tidak kita crawl.
+
+---
+
+## 3. STACK
+
+Wajib, jangan diganti:
+
+- **Next.js 15** App Router, React 19, TypeScript strict
+- **Tailwind CSS v4** + CSS variables (token di §7)
+- **shadcn/ui** (hanya primitif: dialog, sheet, tabs, select, tooltip, skeleton, sonner)
+- **Postgres 16** + **Prisma 6** — Supabase atau Neon
+- **Redis** (Upstash) — cache stream URL, rate limit, antrean crawl
+- **HLS.js** untuk player
+- **Playwright + playwright-extra/stealth** untuk worker scrape (jalan di VPS, bukan di Vercel)
+- **Zod** untuk validasi semua boundary (env, API input, response upstream)
+- **Vitest** + **Playwright Test** (unit + e2e)
+- **pnpm**, **ESLint**, **Prettier**, **Husky** + lint-staged
+- Deploy: web → **Vercel**; worker scrape + Postgres + Redis → **VPS Docker Compose** (Hetzner CPX21)
+
+Dilarang: WordPress, jQuery, Bootstrap, CSS-in-JS runtime, library animasi berat, `moment`.
+
+---
+
+## 4. STRUKTUR REPO (monorepo pnpm)
+
+```
+ongx/
+├─ apps/
+│  ├─ web/                     # Next.js
+│  │  ├─ src/app/              # route group (lihat §6)
+│  │  ├─ src/components/
+│  │  ├─ src/config/ads.ts
+│  │  ├─ src/lib/sources/{missav,idlix,adapter.ts}
+│  │  ├─ src/lib/{db,redis,hls,img,i18n,seo}
+│  │  └─ messages/{id,en}.json
+│  └─ worker/                  # Playwright crawler + cron
+│     ├─ src/jobs/{sync-missav,sync-idlix,resolve-stream,probe-links}.ts
+│     └─ Dockerfile
+├─ packages/
+│  ├─ db/                      # prisma schema + client
+│  ├─ shared/                  # tipe, zod, util
+│  └─ ui/                      # komponen lintas app
+├─ docker-compose.yml
+├─ pnpm-workspace.yaml
+└─ README.md
+```
+
+---
+
+## 5. SKEMA DATABASE (Prisma)
+
+Buat persis, boleh tambah index:
+
+```prisma
+enum Source { MISSAV IDLIX }
+enum Kind   { JAV MOVIE SERIES EPISODE }
+enum Status { DRAFT LIVE BROKEN GONE }
+
+model Title {
+  id           String   @id @default(cuid())
+  source       Source
+  kind         Kind
+  status       Status   @default(DRAFT)
+  slug         String   @unique
+  code         String?  @unique          // JAV code
+  titleNative  String?
+  titleId      String?
+  titleEn      String?
+  synopsis     String?
+  year         Int?
+  releasedAt   DateTime?
+  durationSec  Int?
+  rating       Float?
+  posterUrl    String
+  backdropUrl  String?
+  trailerUrl   String?
+  maker        String?
+  director     String?
+  country      String?
+  language     String?
+  isUncensored Boolean  @default(false)
+  hasSubEn     Boolean  @default(false)
+  hasSubId     Boolean  @default(false)
+  views        Int      @default(0)
+  score        Float    @default(0)      // untuk ranking
+  refs         ExternalRef[]
+  genres       TitleGenre[]
+  people       TitlePerson[]
+  episodes     Episode[]  @relation("Series")
+  parent       Title?     @relation("Series", fields: [parentId], references: [id])
+  parentId     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([source, status, kind, score])
+  @@index([status, releasedAt])
+}
+
+model ExternalRef {
+  id       String @id @default(cuid())
+  titleId  String
+  title    Title  @relation(fields: [titleId], references: [id], onDelete: Cascade)
+  provider Source
+  remoteId String
+  url      String
+  @@unique([provider, remoteId])
+}
+
+model Episode {
+  id        String @id @default(cuid())
+  seriesId  String
+  series    Title  @relation("Series", fields: [seriesId], references: [id], onDelete: Cascade)
+  season    Int
+  number    Int
+  titleId   String? @unique
+  @@unique([seriesId, season, number])
+}
+
+model Person { id String @id @default(cuid()); slug String @unique; name String; imageUrl String?; titles TitlePerson[] }
+model TitlePerson { titleId String; personId String; role String; @@id([titleId, personId, role]) }
+model Genre  { id String @id @default(cuid()); slug String @unique; nameId String; nameEn String; titles TitleGenre[] }
+model TitleGenre { titleId String; genreId String; @@id([titleId, genreId]) }
+
+model StreamSource {
+  id        String @id @default(cuid())
+  titleId   String
+  label     String   // "720p", "1080p", "auto"
+  url       String
+  type      String   // "hls"
+  expiresAt DateTime?
+  @@index([titleId])
+}
+
+model Subtitle { id String @id @default(cuid()); titleId String; lang String; url String }
+
+model CrawlJob { id String @id @default(cuid()); source Source; cursor String?; phase String; ok Boolean @default(true); error String?; startedAt DateTime @default(now()); finishedAt DateTime? }
+
+model Report { id String @id @default(cuid()); titleId String; reason String; note String?; ip String; createdAt DateTime @default(now()) }
+```
+
+Seed: 30 genre tetap (JAV: Mature, Wife, Big Breasts, Creampie, Uncensored, VR, dll; Film: action, drama, horror, anime, dll) + 1 user admin (bcrypt).
+
+---
+
+## 6. PETA RUTE
+
+Route group `(site)` untuk publik, `(admin)` untuk panel.
+
+```
+/                                   Home: hero trending + 8 rail
+/jav                                Browse JAV + filter
+/jav/[code]                         Detail JAV
+/jav/genre/[slug]
+/jav/aktris                         Indeks aktris A–Z
+/jav/aktris/[slug]
+/jav/maker/[slug]
+/film                               Browse film
+/film/[slug]
+/series                             Browse series
+/series/[slug]                      Detail + daftar episode
+/series/[slug]/s/[s]/e/[e]          Episode
+/genre/[slug]                       Lintas sumber
+/trending  /baru  /uncensored
+/cari?q=                            Search lintas sumber
+/watch/[id]                         Watch shell (player)
+/riwayat  /simpanan  /playlist      localStorage, tanpa login
+/dmca  /tentang  /kontak  /privasi  /syarat
+/admin  /admin/titles  /admin/jobs  /admin/ads  /admin/reports   (basic auth)
+/sitemap.xml  /sitemap-[n].xml  /robots.txt  /ads.txt  /rss.xml  /manifest.webmanifest
+```
+
+Redirect 301: `/jav/{code}?lang=en` → `/en/jav/{code}`.
+
+---
+
+## 7. DESIGN SYSTEM
+
+**Karakter:** gelap, padat, cepat, seperti aplikasi. Bukan korporat, bukan neon.
+
+Token (`globals.css`):
+
+```css
+:root{
+  --bg:#0a0a0c; --surface:#141418; --surface-2:#1c1c22;
+  --line:#2a2a33; --fg:#f4f4f6; --fg-dim:#9a9aa8;
+  --accent:#ff3d5a; --accent-fg:#0a0a0c;
+  --radius:10px; --radius-lg:16px;
+}
+[data-theme="light"]{ --bg:#fafafa; --surface:#fff; --line:#e4e4ea; --fg:#101014; --fg-dim:#5c5c6b; }
+```
+
+- Font: `Inter` (UI, `next/font`), `Barlow Condensed` 700 untuk wordmark & heading rail. Max 2 keluarga.
+- Wordmark: `ONGX` huruf kapital, tracking `-0.04em`, `accent` di huruf `X`.
+- Grid poster: 2 kolom (mobile) → 3 (sm) → 4 (md) → 6 (lg) → 7 (xl). Gap 10px.
+- Card: rasio 2:3, radius `--radius`, overlay gradient bawah, badge durasi kanan-bawah, badge kualitas kiri-atas, judul 2 baris `line-clamp-2`, hover: `scale(1.03)` + border `--accent`.
+- Skeleton shimmer identik dimensi kartu.
+- Dark default, toggle light disimpan di cookie.
+- Mobile: bottom nav 5 item (Home, JAV, Film, Cari, Simpanan) — sticky, blur, tinggi 56px.
+- Target sentuh minimum 44px. Fokus ring 2px `--accent` offset 2px.
+
+---
+
+## 8. KOMPONEN INTI
+
+`TitleCard`, `Rail` (scroll-snap horizontal + tombol panah desktop), `PosterGrid`, `Player` (HLS.js, kontrol: play, seek ±10s, volume, kualitas, subtitle, PiP, fullscreen, resume), `EpisodeList`, `FilterBar` (Sheet di mobile), `SearchCommand` (debounce 300ms, keyboard nav), `Pagination`, `EmptyState`, `ErrorState`, `AdSlot`, `ShareRow` (native share + copy), `ReportDialog`, `ContinueWatching`.
+
+Aksesibilitas: `aria-label` Indonesia, `role="region"` pada rail, fokus terkelola di Sheet/Dialog, `prefers-reduced-motion` mematikan semua transisi.
+
+---
+
+## 9. MESIN IKLAN (MONETAG) — PALING KRITIS
+
+Arsitektur **config-driven**. Zona tidak boleh tersebar di komponen.
+
+`src/config/ads.ts`:
+
+```ts
+export const AD_ZONES = {
+  smartTag:    { enabled:true,  zoneId: env.NEXT_PUBLIC_MT_SMART },
+  inPagePush:  { enabled:true,  zoneId: env.NEXT_PUBLIC_MT_PUSH },
+  vignette:    { enabled:true,  zoneId: env.NEXT_PUBLIC_MT_VIGNETTE },
+  interstitial:{ enabled:true,  zoneId: env.NEXT_PUBLIC_MT_INTERSTITIAL },
+  popunder:    { enabled:true,  zoneId: env.NEXT_PUBLIC_MT_POPUNDER },
+  rewarded:    { enabled:true,  zoneId: env.NEXT_PUBLIC_MT_REWARDED },
+  native:      { enabled:true,  zoneId: env.NEXT_PUBLIC_MT_NATIVE },
+} as const;
+```
+
+Aturan implementasi:
+
+1. **`<AdProvider>`** di root layout: `next/script` `strategy="lazyOnload"` untuk smart tag + push + vignette. Satu kali, jangan duplikat.
+2. **`<AdSlot variant>`** menyediakan 3 varian: `inline` (di antara rail, tiap 2 rail, maks 6 per halaman), `in-grid` (setiap 7 kartu), `sticky-footer`. Semua punya **tinggi terkunci** (250/300/100) → CLS 0. Render `<div>` kosong + `data-zone` bila `enabled=false` (dev).
+3. **Interstitial** dipicu sekali per sesi, hanya pada navigasi ke `/watch/*` dan hanya jika `document.referrer` internal + sudah scroll > 1 viewport. Simpan flag `sessionStorage.ongx_int`.
+4. **Popunder** baru diaktifkan setelah gesture pertama (`pointerdown` sekali) agar tidak bentrok dengan autoplay.
+5. **Rewarded** opsional di player: tombol "Tonton iklan → buka 1080p". Setelah resolve, unlock kualitas tinggi 30 menit di `sessionStorage`.
+6. **Jangan pasang iklan di dalam `<iframe>` player.** Pause/mute state disimpan; setelah interstitial tertutup, resume posisi.
+7. **Anti-CLS + anti-blocker:** `<noscript>` berisi placeholder gambar. Deteksi adblock ringan; bila terdeteksi tampil baris "Matikan adblock untuk bantu ONGX".
+8. `/ads.txt` di-serve route handler statis berisi baris `monetag` (isi placeholder `# TODO`).
+9. Semua slot punya `data-slot-id` unik untuk A/B nanti.
+10. Di dev, semua slot render kotak bergaris + label zona agar mudah diverifikasi visual.
+
+---
+
+## 10. SEO
+
+- `generateMetadata` per halaman: title `<Judul> — ONGX`, deskripsi 150–160 char, canonical absolut, `hreflang` id/en/x-default.
+- JSON-LD: `Movie`/`TVSeries`/`TVEpisode` + `VideoObject`, `BreadcrumbList`, `WebSite` + `SearchAction`, `Person` untuk aktris.
+- OG image dinamis via `opengraph-image.tsx` (poster + wordmark, 1200x630).
+- Sitemap terpecah, `lastmod` dari `updatedAt`, maks 45k URL per file, exclude status `BROKEN`.
+- `robots.txt`: allow semua kecuali `/admin`, `/api`; blokir `GPTBot`? tidak, biarkan.
+- Slug SEO: `{code}-{slug-judul}` untuk JAV, `{judul}-{tahun}` untuk film. Simpan mapping lama → 301.
+- Internal linking: setiap detail wajib 12 related + rail genre + breadcrumb.
+- `noindex` untuk halaman hasil search & paginasi > 20.
+
+---
+
+## 11. PERFORMA
+
+- RSC untuk semua data fetch. Client component hanya player, filter, search, ads.
+- `revalidate = 1800` pada detail, `600` pada listing, `60` pada home.
+- Poster: `next/image` `sizes` sesuai grid, `priority` hanya 3 kartu teratas di viewport awal, sisanya lazy.
+- Streaming SSR + `Suspense` per rail, jangan blok render.
+- Budget: JS awal ≤ 180 KB gzip. Bundle analyzer di CI, gagalkan bila lewat.
+- Redis cache: resolve stream 15 menit, listing 10 menit, detail 30 menit.
+- Cloudflare di depan Vercel: cache `/_img/*`, `/sitemap*.xml`, `/rss.xml` (edge, 1 hari).
+- Preconnect: `fourhoi.com`, `surrit.com`, CDN Monetag.
+
+---
+
+## 12. KEAMANAN & LEGAL
+
+- CSP ketat, `frame-ancestors 'self'`, `frame-src` whitelist (surrit, majorplay, missav, idlix, monetag).
+- `Referrer-Policy: strict-origin-when-cross-origin`. Player iframe: `referrerPolicy="no-referrer-when-downgrade"`, `allow="autoplay; fullscreen; picture-in-picture; encrypted-media"`, `sandbox` tanpa `allow-same-origin` bila memungkinkan.
+- Rate limit: 120 req/menit/IP pada `/api/*`, 20/menit pada `/api/report`.
+- Validasi `src` gambar via Zod + whitelist host, cegah SSRF.
+- `/dmca` berisi template takedown + email, `/privasi` menyebut cookie iklan pihak ketiga, `/syarat`.
+- Halaman 18+ gate ringan: banner cookie/umur di first visit (`localStorage`), tidak memblok konten.
+
+---
+
+## 13. i18n
+
+`next-intl`. Prefix `/en`. Deteksi `Accept-Language` → redirect sekali, simpan cookie `NEXT_LOCALE`. Semua label di `messages/*.json`. Format tanggal/nomor per locale. Jangan terjemahkan judul native.
+
+---
+
+## 14. ENV
+
+```env
+DATABASE_URL=
+DIRECT_URL=
+REDIS_URL=
+NEXT_PUBLIC_SITE_URL=https://ongx.example
+NEXT_PUBLIC_MT_SMART=
+NEXT_PUBLIC_MT_PUSH=
+NEXT_PUBLIC_MT_VIGNETTE=
+NEXT_PUBLIC_MT_INTERSTITIAL=
+NEXT_PUBLIC_MT_POPUNDER=
+NEXT_PUBLIC_MT_REWARDED=
+NEXT_PUBLIC_MT_NATIVE=
+MISSAV_BASE=https://missav.live
+IDLIX_BASE=https://z2.idlixku.com
+STEALTH_URL=http://stealth:8191
+CRON_SECRET=
+ADMIN_USER=
+ADMIN_PASS_HASH=
+```
+
+Validasi dengan Zod di `src/lib/env.ts`, gagal boot bila kurang. `.env.example` lengkap.
+
+---
+
+## 15. DEPLOY
+
+- `apps/web`: Vercel. `vercel.json` dengan cron `/api/cron/dispatch` tiap 15 menit (header `x-cron-secret`).
+- `apps/worker` + `stealth` + Postgres + Redis: `docker-compose.yml` di VPS. Healthcheck, `restart: unless-stopped`, log JSON ke file.
+- Migrasi: `prisma migrate deploy` di build step.
+- `README.md` berisi langkah deploy end-to-end, termasuk daftar zona Monetag yang harus diisi dan cara verifikasi tiap format iklan.
+- `.github/workflows/ci.yml`: install, lint, typecheck, test, build.
+
+---
+
+## 16. TESTING & ACCEPTANCE
+
+**Wajib lolos:**
+- Unit: normalisasi adapter, parser kode JAV, `score` ranking, format slug, guard SSRF.
+- Integrasi: route handler search, report, sitemap.
+- E2E: home → card → detail → play → fallback iframe → report; filter genre; search; toggle tema; simpan ke local.
+- Lighthouse mobile: Performance ≥ 85, A11y ≥ 95, SEO ≥ 95, CLS < 0.1.
+- Tidak ada 500 pada 50 URL acak dari sitemap.
+- Semua slot iklan muncul saat env zona diisi, dan tidak merusak layout saat kosong.
+
+---
+
+## 17. FASE
+
+1. Scaffold monorepo, Tailwind token, layout, bottom nav, i18n, env guard
+2. Prisma schema + migrasi + seed genre/admin
+3. Adapter missav (listing + detail + normalisasi)
+4. Adapter idlix (listing + detail + stream resolve via stealth)
+5. Halaman home, browse, detail, episode, watch + player HLS + fallback iframe
+6. Search, filter, pagination, simpanan/riwayat
+7. Mesin iklan penuh + `/ads.txt` + deteksi adblock
+8. SEO, sitemap, JSON-LD, OG dinamis
+9. Worker cron + probe link mati + revalidate
+10. Admin minimal (list, toggle status, lihat job, laporan)
+11. Hardening: CSP, rate limit, test, audit Lighthouse
+12. README + deploy
+
+---
+
+## 18. DEFINITION OF DONE
+
+- `pnpm build` bersih, nol warning TS/ESLint
+- Semua fase §17 tercentang di `PROGRESS.md`
+- Home & detail render dari data nyata, bukan mock
+- Player memutar HLS nyata; fallback iframe terbukti bekerja saat resolve gagal
+- 7 format iklan bisa diaktif/nonaktif dari env tanpa sentuh kode
+- Lighthouse mobile lolos ambang §16
+- README bisa diikuti orang lain dari nol sampai live
+- `/dmca`, `/privasi`, `/syarat`, `/tentang` terisi wajar
+
+---
+
+## 19. MULAI
+
+Buat `PROGRESS.md` dari §17, lalu eksekusi Fase 1. Setelah tiap fase, laporkan: yang selesai, hasil build/test, dan asumsi baru di `DECISIONS.md`.

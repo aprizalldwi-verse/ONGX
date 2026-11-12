@@ -1,0 +1,129 @@
+{
+  "meta": {
+    "siteName": "ONGX",
+    "tagline": "Nonton tanpa ribet.",
+    "description": "Katalog film, series, dan anime dengan tautan langsung ke provider resmi. Cepat, ringan, mobile-first."
+  },
+  "nav": {
+    "home": "Beranda",
+    "film": "Film",
+    "series": "Series",
+    "anime": "Anime",
+    "new": "Baru",
+    "search": "Cari",
+    "saved": "Simpanan",
+    "primary": "Navigasi utama"
+  },
+  "common": {
+    "skipToContent": "Lewati ke konten utama",
+    "loading": "Memuat…",
+    "retry": "Coba lagi",
+    "backHome": "Kembali ke beranda",
+    "close": "Tutup",
+    "language": "Ganti bahasa",
+    "themeToLight": "Aktifkan tema terang",
+    "themeToDark": "Aktifkan tema gelap"
+  },
+  "home": {
+    "kicker": "Fase 1 · Kerangka",
+    "title": "Nonton tanpa ribet.",
+    "body": "Katalog film, series, dan anime dengan tautan ke provider resmi. Tata letak, navigasi, dan i18n sudah aktif; data katalog tersambung pada Phase 3.",
+    "ctaFilms": "Jelajahi film",
+    "ctaSeries": "Jelajahi series",
+    "railTrending": "Sedang tren",
+    "railNew": "Baru rilis",
+    "railAnime": "Anime",
+    "emptyTitle": "Katalog belum tersambung",
+    "emptyBody": "Sinkronisasi TMDB berjalan di Phase 3. Sementara itu, navigasi, tema, dan bahasa sudah bisa diuji."
+  },
+  "pages": {
+    "film": {
+      "title": "Film",
+      "body": "Kerangka halaman browse film. Grid, filter, dan paginasi aktif setelah adapter TMDB selesai."
+    },
+    "series": {
+      "title": "Series",
+      "body": "Kerangka halaman browse series. Daftar episode akan menyusul bersama adapter TMDB."
+    },
+    "anime": {
+      "title": "Anime",
+      "body": "Kerangka halaman anime. Sumber AniList bersifat opsional dan dikerjakan di Phase 4."
+    },
+    "trending": {
+      "title": "Sedang tren",
+      "body": "Halaman peringkat lintas sumber. Skor dihitung dari popularitas, rating, dan kebaruan."
+    },
+    "new": {
+      "title": "Baru rilis",
+      "body": "Rilis terbaru dari seluruh sumber, diurutkan berdasarkan tanggal tayang."
+    },
+    "search": {
+      "title": "Cari",
+      "body": "Pencarian lintas sumber dengan debounce 300 ms dan navigasi keyboard. Endpoint aktif di Phase 6."
+    },
+    "watch": {
+      "title": "Watch",
+      "body": "Kerangka halaman tonton. Player HLS untuk konten sendiri, trailer resmi, dan tautan provider menyusul di Phase 5."
+    },
+    "genre": {
+      "title": "Genre",
+      "body": "Halaman genre lintas sumber. Daftar genre tetap diisi pada Phase 2."
+    },
+    "person": {
+      "title": "Orang",
+      "body": "Halaman kru dan pemain. Diisi dari kredit TMDB pada Phase 3."
+    },
+    "history": {
+      "title": "Riwayat",
+      "body": "Riwayat tonton disimpan di perangkat ini saja. Tidak ada akun, tidak ada sinkronisasi server."
+    },
+    "library": {
+      "title": "Simpanan",
+      "body": "Daftar simpanan tersimpan di localStorage. Aktif penuh di Phase 6."
+    },
+    "playlist": {
+      "title": "Playlist",
+      "body": "Playlist lokal untuk merangkai tontonan. Aktif penuh di Phase 6."
+    },
+    "dmca": {
+      "title": "DMCA",
+      "body": "ONGX tidak menghosting berkas video. Halaman takedown lengkap dengan alur dan alamat kontak diisi pada Phase 12."
+    },
+    "about": {
+      "title": "Tentang",
+      "body": "ONGX adalah katalog penemuan konten. Metadata berasal dari TMDB dan AniList; pemutaran terjadi di provider resmi."
+    },
+    "contact": {
+      "title": "Kontak",
+      "body": "Kanal kontak resmi akan dicantumkan di sini pada Phase 12."
+    },
+    "privacy": {
+      "title": "Privasi",
+      "body": "Kebijakan privasi lengkap, termasuk cookie iklan pihak ketiga, diisi pada Phase 12."
+    },
+    "terms": {
+      "title": "Syarat",
+      "body": "Syarat dan ketentuan layanan diisi pada Phase 12."
+    }
+  },
+  "footer": {
+    "legal": "Tautan legal",
+    "dmca": "DMCA",
+    "privacy": "Privasi",
+    "terms": "Syarat",
+    "about": "Tentang",
+    "contact": "Kontak",
+    "attribution": "Metadata film, series, dan anime disediakan oleh TMDB dan AniList. ONGX tidak menghosting atau menyiarkan berkas video.",
+    "rights": "© {year} ONGX"
+  },
+  "errors": {
+    "title": "Ada yang salah",
+    "body": "Halaman gagal dimuat. Coba lagi, atau kembali ke beranda.",
+    "retry": "Coba lagi"
+  },
+  "notFound": {
+    "title": "Halaman tidak ditemukan",
+    "body": "Tautan mungkin sudah berubah atau kontennya belum tersedia.",
+    "backHome": "Kembali ke beranda"
+  }
+}
