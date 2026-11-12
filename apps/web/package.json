@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "tmdb:smoke": "vitest run --config vitest.smoke.mts"
   },
   "dependencies": {
     "@ongx/db": "workspace:*",

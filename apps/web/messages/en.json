@@ -114,6 +114,8 @@
     "about": "About",
     "contact": "Contact",
     "attribution": "Film, series, and anime metadata provided by TMDB and AniList. ONGX does not host or stream video files.",
+    "tmdbLabel": "Open the TMDB website",
+    "tmdbNotice": "This product uses the TMDB API but is not endorsed or certified by TMDB.",
     "rights": "© {year} ONGX"
   },
   "errors": {

@@ -1,5 +1,6 @@
 export { prisma } from "./client";
 export { GENRES, genreSlugs, type GenreSeed } from "./genres";
+export type { PrismaClient } from "@prisma/client";
 export type {
   AdminUser,
   Credit,

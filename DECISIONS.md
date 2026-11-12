@@ -93,3 +93,31 @@ postgresql-x64-16` (port bentrok dengan container, jadi hentikan compose dulu).
 ASUMSI-020: Skrip root `db:*` memakai `pnpm --filter @ongx/db run <script>` (bukan
 `pnpm --filter @ongx/db <script>`) — tanpa `run`, `deploy` ditangkap sebagai command bawaan pnpm
 (`pnpm deploy`) dan gagal dengan `ERR_PNPM_INVALID_DEPLOY_TARGET`.
+
+ASUMSI-021: Detail TMDB diambil dengan **satu** request `append_to_response` (`alternative_titles`,
+`credits`, `videos`, `release_dates` untuk movie; `content_ratings` untuk TV) dan bahasa `id-ID`.
+Tujuannya memangkas 5-6 request per judul menjadi satu, sehingga budget 40 req/10 s tetap aman saat
+build/refresh banyak judul. Judul Inggris diambil dari `alternative_titles` region US, bukan request
+bahasa kedua.
+
+ASUMSI-022: `remoteId` mentah TMDB adalah angka yang bisa sama antara movie dan TV. Karena itu
+`Title.remoteId` disimpan dengan prefix (`movie:693134`, `tv:1396`) saat ditulis ke DB, dan
+`parseRemoteRef()` menerima prefix tersebut. Untuk kompatibilitas, id tanpa prefix dicoba sebagai
+movie lalu TV (hanya saat movie 404). `(source, kind, remoteId)` tetap unik di schema.
+
+ASUMSI-023: TMDB/JustWatch hanya menyediakan satu `link` per judul per region di
+`watch/providers`, bukan deep link per provider. Semua `WatchOffer` region tersebut berbagi URL itu
+(attribution tetap ke TMDB), dan offer dibuang bila region tidak punya `link`. Tidak ada tabel
+`ExternalRef`: identitas eksternal cukup di `Title.source + Title.remoteId`, sedangkan provider
+disimpan di `WatchOffer` (diganti penuh setiap sync agar offer basi hilang).
+
+ASUMSI-024: Slug publik dijaga stabil. Saat sync, slug lama dipertahankan selama base
+`title-year` tidak berubah; bila berubah, slug baru dicari dan `Redirect` (`fromPath` ? `toPath`)
+di-upsert untuk 301 di Phase 8. `freeSlug()` menambahkan suffix angka, dan
+`stripCollisionSuffix()` membandingkan base tanpa suffix agar rename tidak memicu redirect palsu.
+
+ASUMSI-025: Live smoke TMDB dijalankan sebagai file Vitest (`scripts/**/*.smoke.ts` dengan
+`vitest.smoke.mts`) alih-alih menambah dependency `tsx`. Config terpisah menjaga `pnpm test` tidak
+pernah memanggil jaringan; `describe.skipIf(!TMDB_API_KEY)` membuat perintah aman di mesin tanpa key.
+`compact()` dipakai setiap kali menulis input Prisma karena `exactOptionalPropertyTypes` menolak
+properti bernilai `undefined`.

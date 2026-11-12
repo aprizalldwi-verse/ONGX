@@ -34,6 +34,18 @@ export async function SiteFooter() {
         <p className="max-w-prose text-xs leading-relaxed text-[var(--fg-dim)]">
           {t("attribution")}
         </p>
+        <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--fg-dim)]">
+          <a
+            href="https://www.themoviedb.org/"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={t("tmdbLabel")}
+            className="inline-flex items-center rounded bg-[#01b4e4] px-1.5 py-0.5 text-[10px] font-bold tracking-widest text-black uppercase"
+          >
+            TMDB
+          </a>
+          <span>{t("tmdbNotice")}</span>
+        </div>
         <p className="text-xs text-[var(--fg-dim)]">{t("rights", { year })}</p>
       </div>
     </footer>

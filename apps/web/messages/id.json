@@ -114,6 +114,8 @@
     "about": "Tentang",
     "contact": "Kontak",
     "attribution": "Metadata film, series, dan anime disediakan oleh TMDB dan AniList. ONGX tidak menghosting atau menyiarkan berkas video.",
+    "tmdbLabel": "Buka situs TMDB",
+    "tmdbNotice": "Produk ini menggunakan API TMDB namun tidak didukung atau disertifikasi oleh TMDB.",
     "rights": "© {year} ONGX"
   },
   "errors": {

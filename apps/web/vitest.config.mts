@@ -11,5 +11,11 @@ export default defineConfig({
     globals: true,
     environment: "node",
     include: ["src/**/*.test.ts"],
+    // Workspace packages ship TypeScript sources; let Vite transform them.
+    server: {
+      deps: {
+        inline: [/@ongx\//],
+      },
+    },
   },
 });

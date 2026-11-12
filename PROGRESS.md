@@ -43,9 +43,30 @@ Catatan Phase 2:
 - PostgreSQL 16 native di mesin dev dihentikan (Manual) agar port 5432 dipakai container
   (lihat `DECISIONS.md` ASUMSI-019).
 
-## Phase 3 — TMDB adapter
+## Phase 3 — TMDB adapter ✅
 
-- [ ] (belum)
+- [x] `@ongx/shared`: `NormalizedTitle`/`NormalizedGenre`/`NormalizedPerson`/`NormalizedOffer`,
+      `CatalogAdapter`, `BrowseFilters`, `Page<T>`
+- [x] `TmdbClient`: Zod-validated GET, read-through cache (Redis → memori), fixed-window rate
+      limiter, retry 429/5xx/network dengan backoff + `Retry-After`, pemetaan error
+- [x] Skema Zod subset payload TMDB (list, search, detail movie/TV, watch providers, genre)
+- [x] Normalisasi ke domain: judul ID via `alternative_titles`, genre kanonik (24 seed + fallback),
+      cast/crew terurut, trailer YouTube resmi, age rating per region, offers per region
+- [x] `TmdbAdapter`: `trending`, `listing`, `search`, `detail`, `genres`, `offers` + `parseRemoteRef`
+- [x] Upsert idempotent: Title/Genre/Person/Credit/WatchOffer + slug dedupe + `Redirect` saat slug
+      berubah; `uniqueGenres`/`uniqueCredits` pure helper
+- [x] Atribusi TMDB di footer (badge + notice resmi, i18n id/en)
+- [x] 66 unit test web (fixture, tanpa jaringan) + live smoke opsional
+- [x] Gate: lint, typecheck, test, build hijau
+
+Catatan Phase 3:
+
+- `TMDB_API_KEY` di mesin dev masih kosong, jadi `pnpm --filter @ongx/web tmdb:smoke` otomatis
+  skip. Unit test memakai fixture dan tidak butuh key.
+- Detail memakai satu panggilan dengan `append_to_response=alternative_titles,credits,videos,
+  release_dates` (movie) / `content_ratings` (TV) — lihat `DECISIONS.md` ASUMSI-021.
+- Cache TTL: listing 10 menit, detail 30 menit, genre 24 jam; budget 40 request / 10 detik.
+- Phase 3 belum menyentuh UI katalog; halaman masih stub sampai Phase 5.
 
 ## Phase 4 — AniList adapter (opsional)
 
