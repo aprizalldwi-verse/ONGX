@@ -78,3 +78,18 @@ tidak bisa dihubungi.
 ASUMSI-017: `.husky/pre-commit` memakai `lint-staged --max-arg-length 5000` — batas panjang
 command line Windows (±8191 karakter) terlampaui saat 109 file di-stage sekaligus, sehingga
 prettier/eslint gagal sebelum sempat memeriksa file.
+
+ASUMSI-018: Docker Desktop dipasang setelah WSL2 (`wsl --install --no-distribution`) di mesin dev
+Windows — tanpa WSL2 engine tidak bisa hidup, dan virtualisasi BIOS sudah aktif sehingga tidak perlu
+reboot. Instalasi lewat `winget install -e --id Docker.DockerDesktop`.
+
+ASUMSI-019: PostgreSQL 16 native (`postgresql-x64-16`, auto-start) ternyata sudah memegang port
+5432, sehingga koneksi `localhost:5432` masuk ke server itu dan `prisma migrate deploy` gagal
+dengan P1000. Service native di-set **Manual + Stopped** dan Postgres dari `docker-compose.yml`
+dipakai sebagai satu-satunya sumber data dev, agar `DATABASE_URL` tetap `localhost:5432` seperti
+di README dan tidak ada dua sumber kebenaran. Bila butuh server native lagi: `Start-Service
+postgresql-x64-16` (port bentrok dengan container, jadi hentikan compose dulu).
+
+ASUMSI-020: Skrip root `db:*` memakai `pnpm --filter @ongx/db run <script>` (bukan
+`pnpm --filter @ongx/db <script>`) — tanpa `run`, `deploy` ditangkap sebagai command bawaan pnpm
+(`pnpm deploy`) dan gagal dengan `ERR_PNPM_INVALID_DEPLOY_TARGET`.

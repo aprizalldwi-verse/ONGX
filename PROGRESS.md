@@ -30,8 +30,18 @@ Catatan Phase 1:
 - [x] Seed idempotent: 24 genre (nama id+en) + admin dari `ADMIN_PASS`/`ADMIN_PASS_HASH`
 - [x] Prisma client singleton (`@ongx/db`) + guard `server-only` di web
 - [x] `/api/health` (DB + Redis, 200/503) + unit test laporan health
-- [ ] Terapkan migrasi ke Postgres lokal (menunggu Docker Desktop terpasang)
-- [ ] Jalankan seed + verifikasi `/api/health` = `ok`
+- [x] Terapkan migrasi ke Postgres lokal (Docker, `20261112000000_init` applied)
+- [x] Jalankan seed + verifikasi `/api/health` = `ok`
+
+Catatan Phase 2:
+
+- Docker Desktop 4.99.0 + WSL2 dipasang; `docker compose up -d` menyalakan `ongx-postgres`
+  (healthy) dan `ongx-redis` (healthy).
+- Seed: 24 genre masuk; admin dilewati karena `ADMIN_PASS`/`ADMIN_PASS_HASH` masih kosong
+  (diisi saat Phase 10).
+- `/api/health` → `{"status":"ok","checks":{"database":"up","redis":"up"}}`.
+- PostgreSQL 16 native di mesin dev dihentikan (Manual) agar port 5432 dipakai container
+  (lihat `DECISIONS.md` ASUMSI-019).
 
 ## Phase 3 — TMDB adapter
 
