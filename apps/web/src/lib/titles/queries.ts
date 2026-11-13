@@ -4,6 +4,7 @@ import type { Prisma, Source } from "@ongx/db";
 
 import { prisma } from "@/lib/prisma";
 import { VIDIO_PROVIDER_NAME } from "@/lib/providers";
+import { isSearchable, normalizeSearchQuery, SEARCH_LIMIT } from "@/lib/search";
 
 import {
   toHero,
@@ -200,6 +201,38 @@ export async function browseTitles(params: BrowseParams = {}, locale = "id"): Pr
     totalPages: Math.max(1, Math.ceil(totalItems / perPage)),
     totalItems,
   };
+}
+
+/**
+ * Cross-source title search. Matches the localized, English and native titles so
+ * `one piece` finds both TMDB and AniList rows. Popularity order keeps the
+ * recognizable result on top; the limit stays small because this powers a
+ * typeahead.
+ */
+export async function searchTitles(
+  query: string,
+  locale = "id",
+  limit = SEARCH_LIMIT,
+): Promise<TitleCardView[]> {
+  const term = normalizeSearchQuery(query);
+  if (!isSearchable(term)) return [];
+
+  const safeLimit = Math.min(40, Math.max(1, Math.trunc(limit)));
+
+  const rows = await prisma.title.findMany({
+    where: liveWhere({
+      OR: [
+        { titleId: { contains: term, mode: "insensitive" } },
+        { titleEn: { contains: term, mode: "insensitive" } },
+        { titleNative: { contains: term, mode: "insensitive" } },
+      ],
+    }),
+    orderBy: POPULARITY_ORDER,
+    take: safeLimit,
+    select: titleCardSelect,
+  });
+
+  return rows.map((row) => toTitleCard(row, locale));
 }
 
 interface RailDefinition {

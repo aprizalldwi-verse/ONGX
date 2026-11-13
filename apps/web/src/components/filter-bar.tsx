@@ -2,7 +2,7 @@ import { Button } from "@ongx/ui";
 import { SlidersHorizontal } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
-import { Link } from "@/i18n/navigation";
+import { FilterSheet } from "@/components/filter-sheet";
 import { localizedPath } from "@/lib/paths";
 import type { BrowseFilters } from "@/lib/titles/filters";
 import type { GenreWithCount } from "@/lib/titles/queries";
@@ -19,12 +19,20 @@ export interface FilterBarProps {
   showSort?: boolean;
 }
 
+interface FilterFieldsProps extends FilterBarProps {
+  action: string;
+}
+
 const selectClass =
   "h-10 min-w-0 rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface)] px-3 text-sm text-[var(--fg)] outline-none focus-visible:border-[var(--accent)]";
 
-export async function FilterBar({
+/**
+ * The native GET form. Submitting reloads the document, which keeps filtering
+ * functional without JavaScript and closes the mobile sheet for free.
+ */
+async function FilterFields({
   locale,
-  basePath,
+  action,
   filters,
   genres,
   years,
@@ -32,15 +40,14 @@ export async function FilterBar({
   showYear = true,
   showProvider = true,
   showSort = true,
-}: FilterBarProps) {
+}: FilterFieldsProps) {
   const t = await getTranslations("browse");
-  const action = localizedPath(locale, basePath);
 
   return (
     <form
       action={action}
       method="get"
-      className="mt-6 rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--surface)] p-3 sm:p-4"
+      className="rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--surface)] p-3 sm:p-4"
     >
       <div className="flex flex-wrap items-end gap-2">
         <span className="mb-2 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[var(--fg-dim)] sm:mb-0 sm:self-center">
@@ -102,9 +109,31 @@ export async function FilterBar({
         </Button>
 
         <Button asChild variant="ghost" size="sm" className="h-10">
-          <Link href={basePath}>{t("reset")}</Link>
+          <a href={action}>{t("reset")}</a>
         </Button>
       </div>
     </form>
+  );
+}
+
+/**
+ * Inline filter form on desktop, bottom sheet on mobile. Both render the same
+ * `FilterFields`, so the fields, defaults and reset target cannot drift.
+ */
+export async function FilterBar(props: FilterBarProps) {
+  const t = await getTranslations("browse");
+  const action = localizedPath(props.locale, props.basePath);
+  const fields = <FilterFields {...props} action={action} />;
+
+  return (
+    <>
+      <div className="mt-6 hidden md:block">{fields}</div>
+
+      <div className="mt-6 md:hidden">
+        <FilterSheet label={t("filters")} title={t("filters")}>
+          {fields}
+        </FilterSheet>
+      </div>
+    </>
   );
 }

@@ -196,3 +196,33 @@ offer Vidio per kartu untuk badge poster. Alasan: Vidio tidak punya API playback
 tidak menyediakan deep link per judul; pencarian resmi adalah satu-satunya tautan yang diizinkan
 kebijakan data. Nama provider ("Vidio") adalah nama merek, jadi dipakai sebagai konstanta data
 (`VIDIO_PROVIDER_NAME`), bukan string UI yang diterjemahkan.
+
+ASUMSI-037: Pencarian publik memakai `GET /api/search` (bukan Server Action) karena typeahead
+dipanggil dari header di semua halaman dan hasilnya perlu di-cache lintas request. Kontrak query
+divalidasi Zod strict (`q` 2–80 karakter, tanpa key lain) sebelum rate limit, sehingga request
+cacat tidak memakan kuota. Normalisasi (`trim` + collapse whitespace) dipakai untuk validasi,
+cache key, dan query DB; cache key menurunkan huruf karena pencocokan `contains` memakai
+`mode: "insensitive"`. TTL 60 detik per locale, `cache-control: no-store` untuk browser, dan
+header `x-cache` untuk observability. Rate limit 120/menit per IP memakai fixed window Redis yang
+sama dengan laporan dan fail-open saat Redis error. Pencocokan hanya `titleId`/`titleEn`/
+`titleNative` (bukan sinopsis) agar hasil typeahead tetap relevan dan query tetap murah; batas
+24 item cukup untuk dropdown, sementara halaman `/cari` memakai fungsi query yang sama.
+
+ASUMSI-038: Simpanan dan playlist disimpan device-local di `localStorage` (`ongx:saved`,
+`ongx:playlist`) tanpa akun atau sinkronisasi server, konsisten dengan continue-watching. Setiap
+pembacaan melewati skema Zod; data rusak, JSON asing, atau storage yang melempar error
+menghasilkan daftar kosong (bukan crash). Daftar diurutkan `addedAt` terbaru lebih dulu dan
+dibatasi 100 entri agar tidak tumbuh tanpa batas. Menambah ke playlist bersifat idempoten,
+menghapus bersifat idempoten, dan tombol simpan bersifat toggle. Riwayat memakai ulang
+`ongx:continue` lewat `readContinue`, jadi entri yang selesai (≥95 %) tidak pernah muncul lagi.
+Alasan: belum ada autentikasi di v1 dan kebijakan data tidak butuh profil pengguna; menyimpan di
+perangkat menghindari PII dan biaya server.
+
+ASUMSI-039: Form filter dan pencarian memakai submit GET native (full navigation), bukan
+`router.push`, supaya tetap berfungsi tanpa JavaScript dan sheet filter mobile tertutup sendiri
+tanpa state tambahan. Tombol reset sengaja memakai `<a>` biasa karena `next/link` akan menangani
+navigasi di klien dan membiarkan sheet terbuka. Halaman `/simpanan`, `/playlist`, dan `/riwayat`
+merender skeleton saat `entries === null` (server + pass klien pertama) lalu mengisi dari
+`localStorage` di `useEffect`; tanpa pola ini HTML server dan render klien pertama berbeda dan
+React melaporkan hydration mismatch. Tombol simpan/playlist di halaman detail juga membaca state
+setelah mount dengan alasan yang sama.

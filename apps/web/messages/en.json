@@ -192,6 +192,41 @@
     "progress": "{percent}% watched",
     "remove": "Remove from list"
   },
+  "search": {
+    "title": "Search",
+    "open": "Open search",
+    "placeholder": "Search movies, series, anime…",
+    "clear": "Clear search",
+    "loading": "Searching…",
+    "error": "Search failed. Try again.",
+    "noResultsTitle": "No results",
+    "noResultsBody": "Try another keyword or a different spelling.",
+    "viewAll": "View all results",
+    "promptTitle": "Start searching",
+    "promptBody": "Type at least {min} characters. Search covers Indonesian, English, and original titles.",
+    "resultsFor": "Results for “{query}”",
+    "resultCount": "{count} results",
+    "kindMovie": "Movie",
+    "kindSeries": "Series",
+    "kindAnime": "Anime"
+  },
+  "library": {
+    "save": "Save",
+    "saved": "Saved",
+    "remove": "Remove",
+    "addToPlaylist": "Add to playlist",
+    "inPlaylist": "In playlist",
+    "loading": "Loading…",
+    "emptySavedTitle": "Nothing saved yet",
+    "emptySavedBody": "Save a title from its detail page so you can find it again.",
+    "emptyPlaylistTitle": "Your playlist is empty",
+    "emptyPlaylistBody": "Add titles to your playlist from their detail pages.",
+    "emptyHistoryTitle": "No history yet",
+    "emptyHistoryBody": "Titles you watch show up here, stored on this device only.",
+    "historyEpisode": "Season {season} Episode {number}",
+    "historyProgress": "{percent}% watched",
+    "removeFromHistory": "Remove from history"
+  },
   "pages": {
     "film": {
       "title": "Movies",
@@ -215,7 +250,7 @@
     },
     "search": {
       "title": "Search",
-      "body": "Cross-source search with a 300 ms debounce and keyboard navigation. The endpoint lands in Phase 6."
+      "body": "Search movies, series, and anime across sources. Results update as you type."
     },
     "watch": {
       "title": "Watch",
@@ -235,11 +270,11 @@
     },
     "library": {
       "title": "Saved",
-      "body": "Saved titles live in localStorage. Fully wired in Phase 6."
+      "body": "Saved titles live on this device. No account, no server sync."
     },
     "playlist": {
       "title": "Playlist",
-      "body": "Local playlists for lining up what to watch next. Fully wired in Phase 6."
+      "body": "Local playlists for lining up what to watch next. Stored on this device only."
     },
     "dmca": {
       "title": "DMCA",

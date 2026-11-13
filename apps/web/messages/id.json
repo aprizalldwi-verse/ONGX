@@ -192,6 +192,41 @@
     "progress": "{percent}% ditonton",
     "remove": "Hapus dari daftar"
   },
+  "search": {
+    "title": "Cari",
+    "open": "Buka pencarian",
+    "placeholder": "Cari film, series, anime…",
+    "clear": "Bersihkan pencarian",
+    "loading": "Mencari…",
+    "error": "Pencarian gagal. Coba lagi.",
+    "noResultsTitle": "Tidak ada hasil",
+    "noResultsBody": "Coba kata kunci lain atau ejaan yang berbeda.",
+    "viewAll": "Lihat semua hasil",
+    "promptTitle": "Mulai mencari",
+    "promptBody": "Ketik minimal {min} karakter. Pencarian mencakup judul Indonesia, Inggris, dan asli.",
+    "resultsFor": "Hasil untuk “{query}”",
+    "resultCount": "{count} hasil",
+    "kindMovie": "Film",
+    "kindSeries": "Series",
+    "kindAnime": "Anime"
+  },
+  "library": {
+    "save": "Simpan",
+    "saved": "Tersimpan",
+    "remove": "Hapus",
+    "addToPlaylist": "Tambah ke playlist",
+    "inPlaylist": "Ada di playlist",
+    "loading": "Memuat…",
+    "emptySavedTitle": "Belum ada simpanan",
+    "emptySavedBody": "Simpan judul dari halaman detail supaya mudah ditemukan lagi.",
+    "emptyPlaylistTitle": "Playlist masih kosong",
+    "emptyPlaylistBody": "Tambahkan judul ke playlist dari halaman detail.",
+    "emptyHistoryTitle": "Belum ada riwayat",
+    "emptyHistoryBody": "Judul yang kamu tonton akan muncul di sini, tersimpan di perangkat ini saja.",
+    "historyEpisode": "Musim {season} Episode {number}",
+    "historyProgress": "{percent}% ditonton",
+    "removeFromHistory": "Hapus dari riwayat"
+  },
   "pages": {
     "film": {
       "title": "Film",
@@ -215,7 +250,7 @@
     },
     "search": {
       "title": "Cari",
-      "body": "Pencarian lintas sumber dengan debounce 300 ms dan navigasi keyboard. Endpoint aktif di Phase 6."
+      "body": "Cari judul lintas film, series, dan anime. Hasil muncul saat kamu mengetik."
     },
     "watch": {
       "title": "Watch",
@@ -235,11 +270,11 @@
     },
     "library": {
       "title": "Simpanan",
-      "body": "Daftar simpanan tersimpan di localStorage. Aktif penuh di Phase 6."
+      "body": "Daftar simpanan tersimpan di perangkat ini. Tidak ada akun, tidak ada sinkronisasi server."
     },
     "playlist": {
       "title": "Playlist",
-      "body": "Playlist lokal untuk merangkai tontonan. Aktif penuh di Phase 6."
+      "body": "Playlist lokal untuk merangkai tontonan. Tersimpan di perangkat ini saja."
     },
     "dmca": {
       "title": "DMCA",

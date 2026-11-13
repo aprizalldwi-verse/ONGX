@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 
+import { HeaderSearch } from "@/components/header-search";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Link } from "@/i18n/navigation";
@@ -40,6 +41,7 @@ export async function SiteHeader() {
         </nav>
 
         <div className="ml-auto flex items-center gap-1">
+          <HeaderSearch />
           <LocaleSwitcher />
           <ThemeToggle />
         </div>

@@ -4,10 +4,12 @@ import Image from "next/image";
 import { getTranslations } from "next-intl/server";
 
 import { Link } from "@/i18n/navigation";
+import { toLibraryTitle } from "@/lib/library";
 import type { TitleCardView, TitleDetailView } from "@/lib/titles/view";
 
 import { CastRail } from "./cast-rail";
 import { EpisodeList } from "./episode-list";
+import { LibraryActions } from "./library-actions";
 import { OffersPanel } from "./offers-panel";
 import { ReportDialog } from "./report-dialog";
 import { ShareRow } from "./share-row";
@@ -135,6 +137,10 @@ export async function TitleDetail({ title, related }: TitleDetailProps) {
                 ) : null}
 
                 <ReportDialog titleId={title.id} title={title.title} />
+              </div>
+
+              <div className="mt-3">
+                <LibraryActions title={toLibraryTitle(title)} />
               </div>
 
               <div className="mt-4">

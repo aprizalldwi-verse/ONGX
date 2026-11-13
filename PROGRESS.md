@@ -153,7 +153,35 @@ Catatan Vidio-first:
 
 ## Phase 6 — Search, filter, library
 
-- [ ] (belum)
+- [x] Pencarian lintas sumber `/cari?q=` (SSR, `noindex`) + typeahead header (debounce 300 ms,
+      navigasi keyboard, sheet di mobile)
+- [x] `GET /api/search` (Zod `q` 2–80 karakter, rate limit Redis 120/menit per IP, cache Redis
+      60 detik per locale, `cache-control: no-store`, `x-cache: hit|miss`, fail-open)
+- [x] Pencocokan `contains` case-insensitive pada `titleId`/`titleEn`/`titleNative`, urut
+      popularitas, maksimal 24 hasil (40 di query layer)
+- [x] Filter desktop inline + sheet mobile yang berbagi satu form GET native (tutup sheet tanpa
+      state klien, tetap berfungsi tanpa JavaScript)
+- [x] Simpanan + playlist device-local (`ongx:saved`, `ongx:playlist`, Zod, maks 100) dengan
+      tombol simpan/playlist di halaman detail
+- [x] `/simpanan`, `/playlist`, `/riwayat` (riwayat memakai `ongx:continue`, progress + hapus)
+- [x] `loading.tsx` / `error.tsx` / `not-found.tsx` tetap lengkap untuk rute baru
+- [x] Playwright: typeahead → detail, kontrak API + cache, filter Vidio → simpan → playlist,
+      riwayat ter-seed + hapus, sheet filter mobile, dan cek hydration tanpa console error
+- [x] 23 file / 183 unit test web (201 test seluruh workspace)
+- [x] Gate: lint, typecheck, test, build, format:check hijau; 10/10 e2e hijau
+
+Catatan Phase 6:
+
+- Library dan riwayat sepenuhnya device-local: tidak ada akun, tidak ada sinkronisasi server.
+  Parser memvalidasi `localStorage` dan gagal dengan aman (data rusak = daftar kosong).
+- Halaman daftar merender skeleton di server dan pass klien pertama (`entries === null`) lalu
+  mengisi dari `localStorage`, sehingga tidak ada hydration mismatch.
+- `/cari` tampil sebagai SSG di output build meski membaca `searchParams`; hasil query tetap
+  dirender per request saat runtime (diverifikasi lewat e2e dan `next start`).
+- Filter dan pencarian memakai submit GET native; `reset` memakai `<a>` biasa agar sheet mobile
+  tertutup tanpa state tambahan.
+- Rate limit pencarian dan laporan berbagi `lib/redis-fixed-window.ts`; validasi query dilakukan
+  sebelum rate limit agar request cacat tidak memakan kuota.
 
 ## Phase 7 — Ad engine
 
