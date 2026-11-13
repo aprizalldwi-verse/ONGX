@@ -20,6 +20,7 @@ docker compose up -d
 pnpm db:deploy                 # terapkan migrasi
 pnpm db:seed                   # 24 genre (+ admin bila ADMIN_PASS* diisi)
 pnpm catalog:sync              # tarik metadata TMDB + AniList (butuh TMDB_API_KEY)
+pnpm catalog:sync --force      # paksa refresh walau baris <24 jam (mis. backfill offer)
 pnpm dev                       # http://localhost:3000
 ```
 

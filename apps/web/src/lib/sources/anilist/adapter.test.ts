@@ -147,7 +147,7 @@ describe("AniListAdapter", () => {
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 
-  it("returns no offers because AniList has no regional availability", async () => {
+  it("returns no offers because AniList ships them through detail()", async () => {
     const adapter = createAdapter(vi.fn<typeof fetch>());
     await expect(adapter.offers("1", "ID")).resolves.toEqual([]);
   });

@@ -132,10 +132,9 @@ server. Entri <10 detik dianggap belum mulai, entri ≥95 % dianggap selesai dan
 dibatasi 20 item terbaru. Alasannya: v1 belum punya akun, jadi sinkronisasi lintas perangkat tidak
 mungkin; aturan ambang mencegah rail mengirim penonton ke kredit atau ke iklan pembuka.
 
-ASUMSI-028: `offers` untuk judul AniList selalu kosong. AniList tidak menyediakan deep link
-provider resmi, dan kebijakan data melarang menebak URL atau memakai sumber tidak resmi. Judul
-AniList tetap tampil lengkap dengan trailer (bila ada) dan episode; panel offer hanya terisi untuk
-judul TMDB.
+ASUMSI-028: ~~`offers` untuk judul AniList selalu kosong.~~ **Digantikan ASUMSI-034.** AniList
+tidak menyediakan data ketersediaan per region, dan kebijakan data melarang menebak URL atau memakai
+sumber tidak resmi; karena itu awalnya panel offer hanya diisi untuk judul TMDB.
 
 ASUMSI-029: `POST /api/report` memakai fixed window Redis 5 laporan / 10 menit per IP dan langsung
 mengembalikan `429` + `retry-after` (tidak menunggu seperti limiter sync). Redis error = fail-open.
@@ -168,3 +167,21 @@ unit test, karena hls.js membutuhkan `MediaSource`. `e2e/global-setup.ts` meng-u
 keduanya. Segmen HLS dibuat 2 detik H.264 dan disimpan sebagai `.bin` (bukan `.ts`) agar
 `next build` tidak mencoba mem-parse-nya sebagai TypeScript, dengan aturan `.gitattributes`
 `*.bin binary`. Fixture ini tidak pernah masuk katalog produksi.
+
+ASUMSI-034: Offer judul AniList diambil dari `Media.externalLinks` dengan `type === "STREAMING"`
+dan `isDisabled !== true`. AniList tidak punya ketersediaan per region maupun model harga, jadi
+offer disimpan dengan region sentinel `WW` dan tipe `FLATRATE`, kecuali kanal YouTube resmi yang
+bertipe `FREE` (Muse Asia/Ani-One dan kanal resmi lain memang gratis). `providerId` = slug nama
+situs, dan duplikat `providerId:offerType` dibuang. `AniListAdapter.offers()` tetap mengembalikan
+array kosong karena tautan sudah ikut di `detail()` — satu request lebih sedikit per judul. URL
+http dibiarkan apa adanya (navigasi keluar tidak terkena aturan mixed content), dan tidak ada
+scraper/`.m3u8` pihak ketiga yang dipakai.
+
+ASUMSI-035: `catalog-sync` sekarang memanggil `adapter.offers(remoteId, region)` untuk TMDB dan
+menggabungkannya ke `detail.offers` sebelum `upsertTitle`, karena `upsertTitle` selalu menghapus lalu
+membuat ulang `WatchOffer`. Bila panggilan offers gagal, judul di-skip (bukan di-upsert dengan offer
+kosong) agar baris lama tidak hilang; kegagalan itu dihitung di `counters.failed`. Flag `--force`
+melewati skip freshness 24 jam supaya perubahan normalisasi bisa mem-backfill data lama. Client
+Prisma di `packages/db` memakai `transactionOptions: { maxWait: 10_000, timeout: 30_000 }` karena
+judul dengan cast besar (ratusan query person/genre) melewati batas transaksi default 5 detik dan
+menggagalkan sync.

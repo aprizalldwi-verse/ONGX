@@ -77,18 +77,24 @@ Catatan Phase 3:
       `averageScore/10`, `duration*60`, `format MOVIE` → `MOVIE` (selain itu `SERIES`)
 - [x] Genre dipetakan ke slug kanonik + `anime` otomatis; `streamingEpisodes` → `Episode`
       (fallback `Episode N`), hanya musim 1
-- [x] `offers` selalu kosong (ASUMSI-028)
-- [x] `pnpm catalog:sync` (TMDB + AniList, `--limit`/`--tmdb`/`--anilist`, skip <24 jam,
+- [x] `offers` AniList dari `externalLinks` tipe `STREAMING` (region `WW`, YouTube `FREE`) —
+      ASUMSI-034
+- [x] `pnpm catalog:sync` (TMDB + AniList, `--limit`/`--tmdb`/`--anilist`/`--force`, skip <24 jam,
       `Promise.allSettled` untuk discovery parsial)
-- [x] Sinkronisasi katalog: **155 judul / 2.347 episode** (TMDB 98, AniList 57, 0 offer)
+- [x] Sync offer TMDB via `/movie|tv/{id}/watch/providers` region ID (ASUMSI-035)
+- [x] Sinkronisasi katalog: **201 judul / 3.392 episode / 335 offer** (TMDB 59 judul ber-offer,
+      AniList 68 judul ber-offer; contoh: One Piece → Netflix, Vidio, Crunchyroll)
 - [x] Gate: lint, typecheck, test, build hijau
 
 Catatan Phase 4:
 
-- AniList tidak menyediakan deep link provider resmi, jadi panel offer hanya terisi untuk judul
-  TMDB. Keputusan: `DECISIONS.md` ASUMSI-028.
+- AniList tidak punya ketersediaan per region; offer memakai region sentinel `WW` dan tautan resmi
+  dari `externalLinks`. Keputusan: `DECISIONS.md` ASUMSI-034.
 - `pnpm catalog:sync` membaca `apps/web/.env.local` lewat `dotenv-cli`; skrip memakai alias `@/`
   dan tidak boleh mengimpor `server-only`.
+- `--force` dipakai saat menambah field baru (mis. offer) agar baris yang belum 24 jam tetap
+  diperbarui. Timeout jaringan TMDB (10 s) di sandbox bisa membuat sebagian halaman discovery
+  gagal; sync tetap jalan dan counter `failed` mencatatnya.
 
 ## Phase 5 — Pages + player ✅
 

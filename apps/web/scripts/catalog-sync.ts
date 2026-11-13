@@ -1,13 +1,14 @@
 /**
  * One-shot catalog ingestion used while the Phase 9 worker does not exist.
  *
- * Run with: pnpm catalog:sync [--limit=120] [--tmdb=100] [--anilist=60]
+ * Run with: pnpm catalog:sync [--limit=120] [--tmdb=100] [--anilist=60] [--force]
  *
  * Idempotent: `upsertTitle` keeps slugs stable and replaces genres, credits and
- * offers; episodes are upserted by (titleId, season, number).
+ * offers; episodes are upserted by (titleId, season, number). `--force` bypasses
+ * the 24 h freshness skip so a schema/normalization change can backfill rows.
  */
 import { prisma } from "@ongx/db";
-import type { CatalogAdapter, NormalizedTitle, Source } from "@ongx/shared";
+import type { CatalogAdapter, NormalizedOffer, NormalizedTitle, Source } from "@ongx/shared";
 
 import { AniListAdapter } from "@/lib/sources/anilist/adapter";
 import { TmdbAdapter } from "@/lib/sources/tmdb/adapter";
@@ -20,11 +21,12 @@ interface SyncCounters {
   updated: number;
   skipped: number;
   episodes: number;
+  offers: number;
   failed: number;
 }
 
 function createCounters(): SyncCounters {
-  return { listed: 0, created: 0, updated: 0, skipped: 0, episodes: 0, failed: 0 };
+  return { listed: 0, created: 0, updated: 0, skipped: 0, episodes: 0, offers: 0, failed: 0 };
 }
 
 function sleep(ms: number): Promise<void> {
@@ -56,7 +58,7 @@ function localLimiter(limit: number, windowMs: number): RateLimiter {
   };
 }
 
-function parseArgs(): { tmdb: number; anilist: number } {
+function parseArgs(): { tmdb: number; anilist: number; force: boolean } {
   const args = new Map(
     process.argv
       .slice(2)
@@ -70,14 +72,16 @@ function parseArgs(): { tmdb: number; anilist: number } {
   const total = Number.parseInt(args.get("limit") ?? "", 10);
   const tmdb = Number.parseInt(args.get("tmdb") ?? "", 10);
   const anilist = Number.parseInt(args.get("anilist") ?? "", 10);
+  const force = args.has("force");
 
   if (Number.isFinite(total) && total > 0) {
-    return { tmdb: Math.round(total * 0.62), anilist: Math.round(total * 0.38) };
+    return { tmdb: Math.round(total * 0.62), anilist: Math.round(total * 0.38), force };
   }
 
   return {
     tmdb: Number.isFinite(tmdb) && tmdb > 0 ? tmdb : 100,
     anilist: Number.isFinite(anilist) && anilist > 0 ? anilist : 60,
+    force,
   };
 }
 
@@ -145,11 +149,19 @@ async function syncEpisodes(
   }
 }
 
+interface SyncOptions {
+  /** ISO-3166-1 region used for TMDB provider offers. */
+  region: string;
+  /** Bypass the 24 h freshness skip (used to backfill new fields). */
+  force: boolean;
+}
+
 async function syncSource(
   source: Extract<Source, "TMDB" | "ANILIST">,
   adapter: CatalogAdapter,
   listed: NormalizedTitle[],
   detailLimit: number,
+  options: SyncOptions,
 ): Promise<SyncCounters> {
   const counters = createCounters();
   const candidates = dedupe(listed);
@@ -173,7 +185,9 @@ async function syncSource(
       });
 
       const fresh =
-        existing !== null && Date.now() - existing.updatedAt.getTime() < 24 * 60 * 60 * 1_000;
+        !options.force &&
+        existing !== null &&
+        Date.now() - existing.updatedAt.getTime() < 24 * 60 * 60 * 1_000;
 
       if (fresh) {
         counters.skipped += 1;
@@ -187,7 +201,16 @@ async function syncSource(
             : candidate.remoteId;
 
         const detail = await adapter.detail(remoteId);
-        const result = await upsertTitle(prisma, detail);
+
+        // TMDB exposes provider availability through a second endpoint. AniList
+        // ships its official streaming links inside `detail` (ASUMSI-034).
+        // A failed offers call skips the title instead of wiping existing rows.
+        let offers: NormalizedOffer[] = detail.offers;
+        if (source === "TMDB") {
+          offers = await adapter.offers(remoteId, options.region);
+        }
+
+        const result = await upsertTitle(prisma, { ...detail, offers });
 
         if (result.action === "skipped") {
           counters.skipped += 1;
@@ -195,13 +218,14 @@ async function syncSource(
         }
 
         counters[result.action === "created" ? "created" : "updated"] += 1;
+        counters.offers += offers.length;
 
         if (result.titleId) {
           await syncEpisodes(adapter, result.titleId, detail, counters);
         }
 
         console.log(
-          `[sync:${source}] ${result.action} ${detail.titleId ?? detail.slug} (${detail.kind})`,
+          `[sync:${source}] ${result.action} ${detail.titleId ?? detail.slug} (${detail.kind}, ${offers.length} offers)`,
         );
       } catch (error) {
         counters.failed += 1;
@@ -291,28 +315,39 @@ async function main(): Promise<void> {
   }
 
   const limits = parseArgs();
-  console.log(`[sync] limits: tmdb=${limits.tmdb} anilist=${limits.anilist}`);
+  const region = (process.env.TMDB_REGION ?? "ID").toUpperCase();
+  const options: SyncOptions = { region, force: limits.force };
+  console.log(
+    `[sync] limits: tmdb=${limits.tmdb} anilist=${limits.anilist} region=${region} force=${limits.force}`,
+  );
 
   const tmdb = new TmdbAdapter({
     apiKey: process.env.TMDB_API_KEY,
-    region: process.env.TMDB_REGION ?? "ID",
+    region,
     limiter: localLimiter(40, 10_000),
   });
   const anilist = new AniListAdapter({ limiter: localLimiter(90, 60_000) });
 
   const tmdbListed = await collectTmdb(tmdb);
   console.log(`[sync:tmdb] listed ${tmdbListed.length} candidates`);
-  const tmdbCounters = await syncSource("TMDB", tmdb, tmdbListed, limits.tmdb);
+  const tmdbCounters = await syncSource("TMDB", tmdb, tmdbListed, limits.tmdb, options);
 
   const anilistListed = await collectAniList(anilist);
   console.log(`[sync:anilist] listed ${anilistListed.length} candidates`);
-  const anilistCounters = await syncSource("ANILIST", anilist, anilistListed, limits.anilist);
+  const anilistCounters = await syncSource(
+    "ANILIST",
+    anilist,
+    anilistListed,
+    limits.anilist,
+    options,
+  );
 
   console.log("[sync] done", {
     tmdb: tmdbCounters,
     anilist: anilistCounters,
     totalTitles: await prisma.title.count(),
     totalEpisodes: await prisma.episode.count(),
+    totalOffers: await prisma.watchOffer.count(),
   });
 }
 

@@ -3,12 +3,19 @@ import {
   slugify,
   type Kind,
   type NormalizedEpisode,
+  type NormalizedOffer,
   type NormalizedPerson,
   type NormalizedTitle,
+  type OfferType,
 } from "@ongx/shared";
 
 import { genresFromAniList } from "./genres";
-import type { AniListMedia, AniListMediaDetail, AniListStreamingEpisode } from "./schemas";
+import type {
+  AniListExternalLink,
+  AniListMedia,
+  AniListMediaDetail,
+  AniListStreamingEpisode,
+} from "./schemas";
 
 const ENTITIES: Record<string, string> = {
   "&amp;": "&",
@@ -93,6 +100,48 @@ function posterOf(media: AniListMedia): string {
   return text(media.coverImage?.extraLarge) ?? text(media.coverImage?.large) ?? "";
 }
 
+function httpUrl(value: string): string | undefined {
+  try {
+    const url = new URL(value.trim());
+    return url.protocol === "http:" || url.protocol === "https:" ? url.toString() : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * AniList publishes the official streaming destinations per title through
+ * `externalLinks`. It has no regional availability or price model, so offers are
+ * stored under the `WW` pseudo-region and priced as `FLATRATE` — except official
+ * YouTube channels, which are free to watch. See ASUMSI-034.
+ */
+export function normalizeAniListOffers(
+  links: AniListExternalLink[] | undefined,
+): NormalizedOffer[] {
+  const offers: NormalizedOffer[] = [];
+  const seen = new Set<string>();
+
+  for (const link of links ?? []) {
+    if (link.type !== "STREAMING" || link.isDisabled === true) continue;
+
+    const url = httpUrl(link.url);
+    const site = text(link.site);
+    if (!url || !site) continue;
+
+    const providerId = slugify(site);
+    if (providerId.length === 0) continue;
+
+    const offerType: OfferType = providerId === "youtube" ? "FREE" : "FLATRATE";
+    const key = `${providerId}:${offerType}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    offers.push({ region: "WW", providerId, providerName: site, offerType, url });
+  }
+
+  return offers;
+}
+
 export function normalizeAniListMedia(media: AniListMedia): NormalizedTitle {
   const romaji = text(media.title.romaji);
   const english = text(media.title.english);
@@ -163,6 +212,7 @@ export function normalizeAniListDetail(media: AniListMediaDetail): NormalizedTit
         }
       : {}),
     people: staffPeople(media),
+    offers: normalizeAniListOffers(media.externalLinks),
   };
 }
 

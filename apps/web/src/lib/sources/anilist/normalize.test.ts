@@ -4,6 +4,7 @@ import {
   normalizeAniListDetail,
   normalizeAniListEpisodes,
   normalizeAniListMedia,
+  normalizeAniListOffers,
   ratingFromScore,
   stripHtml,
 } from "./normalize";
@@ -137,6 +138,97 @@ describe("normalizeAniListDetail", () => {
     expect(title.people[0]?.role).toBe("CREW");
     expect(title.people[0]?.label).toBe("Director");
     expect(title.people[0]?.slug).toBe("tetsuro-araki");
+  });
+
+  it("maps official streaming links to offers", () => {
+    const detail = anilistMediaDetailSchema.parse({
+      ...mediaPayload,
+      externalLinks: [
+        {
+          id: 8,
+          url: "http://www.crunchyroll.com/attack-on-titan",
+          site: "Crunchyroll",
+          type: "STREAMING",
+          language: null,
+          isDisabled: false,
+        },
+        { id: 45, url: "http://shingeki.tv/", site: "Official Site", type: "INFO" },
+      ],
+    });
+
+    expect(normalizeAniListDetail(detail).offers).toEqual([
+      {
+        region: "WW",
+        providerId: "crunchyroll",
+        providerName: "Crunchyroll",
+        offerType: "FLATRATE",
+        url: "http://www.crunchyroll.com/attack-on-titan",
+      },
+    ]);
+  });
+});
+
+describe("normalizeAniListOffers", () => {
+  it("keeps streaming links, marks YouTube free and skips the rest", () => {
+    const offers = normalizeAniListOffers([
+      {
+        id: 8,
+        url: "http://www.crunchyroll.com/attack-on-titan",
+        site: "Crunchyroll",
+        type: "STREAMING",
+        language: null,
+        isDisabled: false,
+      },
+      {
+        id: 168773,
+        url: "https://youtube.com/@attackontitan_officialchannel",
+        site: "YouTube",
+        type: "STREAMING",
+        language: null,
+        isDisabled: false,
+      },
+      { id: 45, url: "http://shingeki.tv/", site: "Official Site", type: "INFO" },
+      {
+        id: 4,
+        url: "https://www.hulu.com/attack-on-titan",
+        site: "Hulu",
+        type: "STREAMING",
+        language: null,
+        isDisabled: true,
+      },
+      { id: 5, url: "not a url", site: "Broken", type: "STREAMING" },
+    ]);
+
+    expect(offers).toEqual([
+      {
+        region: "WW",
+        providerId: "crunchyroll",
+        providerName: "Crunchyroll",
+        offerType: "FLATRATE",
+        url: "http://www.crunchyroll.com/attack-on-titan",
+      },
+      {
+        region: "WW",
+        providerId: "youtube",
+        providerName: "YouTube",
+        offerType: "FREE",
+        url: "https://youtube.com/@attackontitan_officialchannel",
+      },
+    ]);
+  });
+
+  it("deduplicates the same provider and offer type", () => {
+    const offers = normalizeAniListOffers([
+      { url: "https://www.crunchyroll.com/a", site: "Crunchyroll", type: "STREAMING" },
+      { url: "https://www.crunchyroll.com/b", site: "Crunchyroll", type: "STREAMING" },
+    ]);
+
+    expect(offers).toHaveLength(1);
+    expect(offers[0]?.url).toBe("https://www.crunchyroll.com/a");
+  });
+
+  it("returns an empty list when AniList has no links", () => {
+    expect(normalizeAniListOffers(undefined)).toEqual([]);
   });
 });
 

@@ -66,6 +66,7 @@ const DETAIL_QUERY = `
         nodes { mediaRecommendation { ${MEDIA_FIELDS} } }
       }
       streamingEpisodes { title thumbnail url site }
+      externalLinks { id url site type language isDisabled }
       staff(perPage: 10, sort: RELEVANCE) {
         edges { role node { id name { full } image { large } } }
       }
@@ -194,7 +195,9 @@ export class AniListAdapter implements CatalogAdapter {
   }
 
   async offers(_remoteId: string, _region: string): Promise<RawOffer[]> {
-    // AniList has no region-aware legal availability data; see ASUMSI-028.
+    // AniList has no region-aware legal availability data. Official streaming
+    // links are already part of `detail()` (see ASUMSI-034), so a second request
+    // would only duplicate them.
     return [];
   }
 

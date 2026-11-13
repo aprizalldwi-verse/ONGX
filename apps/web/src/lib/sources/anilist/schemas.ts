@@ -81,10 +81,24 @@ const anilistRecommendationSchema = z.object({
   mediaRecommendation: anilistMediaSchema.nullable().optional(),
 });
 
+/**
+ * Official links per title. `type` is `STREAMING` for legal streaming
+ * destinations, but AniList carries no regional availability or price model.
+ */
+const anilistExternalLinkSchema = z.object({
+  id: nullableNumber,
+  url: z.string(),
+  site: z.string(),
+  type: nullableString,
+  language: nullableString,
+  isDisabled: z.boolean().nullable().optional(),
+});
+
 export const anilistMediaDetailSchema = anilistMediaSchema.extend({
   recommendations: z.object({ nodes: z.array(anilistRecommendationSchema).default([]) }).optional(),
   streamingEpisodes: z.array(anilistStreamingEpisodeSchema).optional(),
   staff: anilistStaffSchema.optional(),
+  externalLinks: z.array(anilistExternalLinkSchema).optional(),
 });
 
 const anilistPageInfoSchema = z.object({
@@ -143,3 +157,4 @@ export const anilistGraphqlErrorSchema = z.object({
 export type AniListMedia = z.infer<typeof anilistMediaSchema>;
 export type AniListMediaDetail = z.infer<typeof anilistMediaDetailSchema>;
 export type AniListStreamingEpisode = z.infer<typeof anilistStreamingEpisodeSchema>;
+export type AniListExternalLink = z.infer<typeof anilistExternalLinkSchema>;
