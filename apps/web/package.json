@@ -11,7 +11,7 @@
     "test": "vitest run",
     "tmdb:smoke": "vitest run --config vitest.smoke.mts",
     "catalog:sync": "dotenv -e .env.local -- tsx scripts/catalog-sync.ts",
-    "e2e": "playwright test"
+    "e2e": "dotenv -e .env.local -- playwright test"
   },
   "dependencies": {
     "@ongx/db": "workspace:*",

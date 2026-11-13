@@ -97,7 +97,7 @@ Catatan Phase 4:
 - [x] Halaman listing `/film`, `/series`, `/anime` (filter genre/tahun/sort, pagination) +
       `/trending`, `/baru`, `/genre/[slug]`
 - [x] Home: hero popularitas + 8 rail (trending, baru, rating, anime, film, series, aksi, komedi),
-      rail kosong disembunyikan
+      tiap rail di balik `Suspense` + skeleton berukuran sama, rail kosong disembunyikan
 - [x] Detail `/film|/series|/anime/[slug]`: sinopsis, cast/crew, genre, offer resmi, trailer,
       daftar episode, share, report
 - [x] Episode `/series/[slug]/s/[s]/e/[e]` + `/anime/[slug]/s/[s]/e/[e]` (prev/next + daftar musim)
@@ -107,13 +107,19 @@ Catatan Phase 4:
 - [x] Continue-watching device-local (`ongx:continue`, min 10 s, buang ≥95 %, maks 20)
 - [x] `POST /api/report` (Zod, rate limit Redis 5/10 menit per IP, fail-open)
 - [x] `loading.tsx` / `error.tsx` / `not-found.tsx` untuk setiap rute publik baru
-- [x] Playwright smoke (3 skenario: home → detail, trailer + report, episode → watch)
+- [x] Playwright smoke (4 skenario: home → detail, trailer + report, episode → watch, serta
+      player HLS lokal + klik offer provider)
 - [x] 20 file / 149 unit test web + 167 test seluruh workspace
 - [x] Gate: lint, typecheck, test, build, format:check hijau
 
 Catatan Phase 5:
 
-- Belum ada `Source.OWN`/`streamUrl`, jadi semua CTA watch jatuh ke trailer + panel offer kosong.
+- Data produksi belum punya `Source.OWN`/`streamUrl`, jadi semua CTA watch jatuh ke trailer +
+  panel offer kosong. E2E membuat fixture `Source.OWN` sementara (judul + offer) di `globalSetup`
+  dan menghapusnya di `globalTeardown`; player memutar master playlist lokal
+  `public/test/fixtures/hls/master.m3u8`.
+- Player memilih hls.js selama MSE tersedia (quality/subtitle), native HLS hanya fallback iOS —
+  ASUMSI-032.
 - Slug tak dikenal masih mengembalikan HTTP 200 dengan UI 404 (ASUMSI-009b, Phase 8).
 - E2E memakai Chrome sistem di mesin dev (unduhan Chromium diblokir) dan memblokir
   `/_next/image` agar koneksi gambar yang menggantung tidak menahan navigasi — ASUMSI-030.

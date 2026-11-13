@@ -54,7 +54,11 @@ Health check: `GET /api/health` — 200 `{status:"ok"|"degraded"}`, 503 bila DB/
 
 E2E: `pnpm e2e` menjalankan Playwright terhadap build produksi. Di mesin dev dipakai Chrome
 sistem (`channel: "chrome"`); di CI pasang browser dengan
-`pnpm --filter @ongx/web exec playwright install --with-deps chromium`.
+`pnpm --filter @ongx/web exec playwright install --with-deps chromium`. Suite memakai
+`apps/web/.env.local` (DATABASE_URL) karena `globalSetup` membuat fixture `Source.OWN` sementara
+untuk menguji player dengan playlist HLS lokal di `apps/web/public/test/fixtures/hls/`; fixture
+dihapus lagi oleh `globalTeardown`. Jalankan `pnpm build` dulu agar file `public/` terdaftar di
+server produksi.
 
 ## Struktur
 

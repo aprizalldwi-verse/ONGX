@@ -1,3 +1,6 @@
 # Normalize line endings so Prettier's `endOfLine: "lf"` check passes on every
 # platform (Windows checkouts default to CRLF without this).
 * text=auto eol=lf
+
+# Generated HLS test segments are binary; never let Git normalise them.
+*.bin binary

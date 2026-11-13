@@ -153,3 +153,18 @@ ASUMSI-031: Repo memakai `.gitattributes` `* text=auto eol=lf`. Prettier dikonfi
 `endOfLine: "lf"`, sedangkan checkout Windows dengan `core.autocrlf=true` menulis CRLF sehingga
 `pnpm format:check` gagal untuk hampir semua file tanpa ada perubahan kode. Atribut ini memaksa
 LF di semua platform.
+
+ASUMSI-032: Player memakai hls.js setiap kali `Hls.isSupported()` (MSE tersedia), dan hanya jatuh
+ke native HLS (`video.src`) bila MSE tidak ada (iOS Safari). Chrome desktop 2026 melaporkan
+`canPlayType("application/vnd.apple.mpegurl") === "maybe"`, tetapi pipeline native-nya tidak
+mengekspos daftar quality/subtitle lewat API yang sama; memilih native lebih dulu membuat kontrol
+quality/subtitle hilang dan playlist uji menggantung di status loading. hls.js juga memberi
+`recoverMediaError`/`startLoad` yang sudah dipakai panel error.
+
+ASUMSI-033: Gate Phase 5 "player diuji dengan fixture m3u8 lokal" dipenuhi lewat e2e browser, bukan
+unit test, karena hls.js membutuhkan `MediaSource`. `e2e/global-setup.ts` meng-upsert judul
+`Source.OWN` sementara (`e2e-own-fixture`) dengan `streamUrl` ke
+`public/test/fixtures/hls/master.m3u8` plus satu `WatchOffer` fiktif; `globalTeardown` menghapus
+keduanya. Segmen HLS dibuat 2 detik H.264 dan disimpan sebagai `.bin` (bukan `.ts`) agar
+`next build` tidak mencoba mem-parse-nya sebagai TypeScript, dengan aturan `.gitattributes`
+`*.bin binary`. Fixture ini tidak pernah masuk katalog produksi.

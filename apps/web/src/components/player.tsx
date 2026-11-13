@@ -85,55 +85,59 @@ export function Player({ src, title, poster, storageKey, onProgress }: PlayerPro
 
     const nativeHls = video.canPlayType("application/vnd.apple.mpegurl") !== "";
 
-    if (nativeHls) {
-      video.src = src;
-    } else {
-      void (async () => {
-        const { default: Hls, ErrorTypes, Events } = await import("hls.js");
-        if (disposed) return;
+    void (async () => {
+      const { default: Hls, ErrorTypes, Events } = await import("hls.js");
+      if (disposed) return;
 
-        if (!Hls.isSupported()) {
-          setError(true);
-          setLoading(false);
+      // Prefer hls.js whenever MSE is available: it exposes quality levels and
+      // subtitle tracks. Native HLS is only the fallback (iOS Safari), where
+      // those controls are not available through the same APIs.
+      if (!Hls.isSupported()) {
+        if (nativeHls) {
+          video.src = src;
           return;
         }
 
-        hls = new Hls({ enableWorker: true });
-        hlsRef.current = hls;
-        hls.loadSource(src);
-        hls.attachMedia(video);
+        setError(true);
+        setLoading(false);
+        return;
+      }
 
-        hls.on(Events.MANIFEST_PARSED, () => {
-          if (disposed || !hls) return;
-          setLevels(hls.levels.map((level, index) => ({ index, height: level.height })));
-          setSubtitles(
-            hls.subtitleTracks.map((track, index) => ({
-              index,
-              label: track.name || track.lang || `#${index + 1}`,
-            })),
-          );
-          setLoading(false);
-        });
+      hls = new Hls({ enableWorker: true });
+      hlsRef.current = hls;
+      hls.loadSource(src);
+      hls.attachMedia(video);
 
-        hls.on(Events.ERROR, (_event, data: ErrorData) => {
-          if (disposed || !data.fatal || !hls) return;
+      hls.on(Events.MANIFEST_PARSED, () => {
+        if (disposed || !hls) return;
+        setLevels(hls.levels.map((level, index) => ({ index, height: level.height })));
+        setSubtitles(
+          hls.subtitleTracks.map((track, index) => ({
+            index,
+            label: track.name || track.lang || `#${index + 1}`,
+          })),
+        );
+        setLoading(false);
+      });
 
-          if (data.type === ErrorTypes.NETWORK_ERROR) {
-            hls.startLoad();
-            return;
-          }
+      hls.on(Events.ERROR, (_event, data: ErrorData) => {
+        if (disposed || !data.fatal || !hls) return;
 
-          if (data.type === ErrorTypes.MEDIA_ERROR) {
-            hls.recoverMediaError();
-            return;
-          }
+        if (data.type === ErrorTypes.NETWORK_ERROR) {
+          hls.startLoad();
+          return;
+        }
 
-          setError(true);
-          setLoading(false);
-          hls.destroy();
-        });
-      })();
-    }
+        if (data.type === ErrorTypes.MEDIA_ERROR) {
+          hls.recoverMediaError();
+          return;
+        }
+
+        setError(true);
+        setLoading(false);
+        hls.destroy();
+      });
+    })();
 
     return () => {
       disposed = true;

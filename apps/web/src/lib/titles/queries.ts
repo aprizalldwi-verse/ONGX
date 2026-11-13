@@ -97,16 +97,6 @@ const heroSelect = {
 export type HomeRailKey =
   "trending" | "new" | "topRated" | "anime" | "film" | "series" | "action" | "comedy";
 
-export interface HomeRail {
-  key: HomeRailKey;
-  items: TitleCardView[];
-}
-
-export interface HomeData {
-  hero: HeroView | null;
-  rails: HomeRail[];
-}
-
 export type BrowseSort = "popularity" | "rating" | "newest";
 
 export interface BrowseParams {
@@ -242,31 +232,29 @@ const RAILS: RailDefinition[] = [
 
 const RAIL_SIZE = 12;
 
-export async function getHomeData(locale: string): Promise<HomeData> {
-  const [heroRow, railResults] = await Promise.all([
-    prisma.title.findFirst({
-      where: liveWhere(),
-      orderBy: POPULARITY_ORDER,
-      select: heroSelect,
-    }),
-    Promise.all(
-      RAILS.map(async (rail) => {
-        const rows = await prisma.title.findMany({
-          where: rail.where,
-          orderBy: rail.orderBy,
-          take: rail.take ?? RAIL_SIZE,
-          select: titleCardSelect,
-        });
+/** Hero is awaited by the page shell; every rail streams in behind its own `<Suspense>`. */
+export async function getHomeHero(locale: string): Promise<HeroView | null> {
+  const row = await prisma.title.findFirst({
+    where: liveWhere(),
+    orderBy: POPULARITY_ORDER,
+    select: heroSelect,
+  });
 
-        return { key: rail.key, items: rows.map((row) => toTitleCard(row, locale)) };
-      }),
-    ),
-  ]);
+  return row ? toHero(row, locale) : null;
+}
 
-  return {
-    hero: heroRow ? toHero(heroRow, locale) : null,
-    rails: railResults,
-  };
+export async function getHomeRail(key: HomeRailKey, locale: string): Promise<TitleCardView[]> {
+  const rail = RAILS.find((definition) => definition.key === key);
+  if (!rail) return [];
+
+  const rows = await prisma.title.findMany({
+    where: rail.where,
+    orderBy: rail.orderBy,
+    take: rail.take ?? RAIL_SIZE,
+    select: titleCardSelect,
+  });
+
+  return rows.map((row) => toTitleCard(row, locale));
 }
 
 export async function getTitleBySlug(

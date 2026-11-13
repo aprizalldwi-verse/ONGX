@@ -60,3 +60,28 @@ test("episode page links to the watch shell", async ({ page }) => {
   await expect(page).toHaveURL(/\/watch\//);
   await expect(page.getByText("Streaming belum tersedia")).toBeVisible();
 });
+
+test("player loads the local HLS fixture and opens a provider offer", async ({ page, context }) => {
+  // Never reach the fake provider; the popup only needs to prove the link works.
+  await context.route("https://provider.example/**", (route) =>
+    route.fulfill({ contentType: "text/html", body: "<h1>provider</h1>" }),
+  );
+
+  await page.goto("/watch/e2e-own-fixture");
+
+  const player = page.getByRole("region", { name: "E2E Player Fixture" });
+  await expect(player).toBeVisible();
+
+  // HLS.js parsed `public/test/fixtures/hls/master.m3u8`, so the 720p level from
+  // the manifest shows up in the quality picker.
+  const quality = player.getByRole("combobox");
+  await expect(quality).toBeVisible();
+  await expect(quality.getByRole("option", { name: "720p" })).toBeAttached();
+  await expect(player.getByRole("button", { name: "Putar" })).toBeVisible();
+
+  const popupPromise = page.waitForEvent("popup");
+  await page.getByRole("link", { name: "Buka E2E Provider" }).click();
+  const popup = await popupPromise;
+  await expect(popup).toHaveURL("https://provider.example/e2e-fixture");
+  await popup.close();
+});
