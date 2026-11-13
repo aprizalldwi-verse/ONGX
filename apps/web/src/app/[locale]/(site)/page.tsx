@@ -1,73 +1,62 @@
-import { Button } from "@ongx/ui";
-import { ArrowRight, Clapperboard, Tv } from "lucide-react";
+import { Clapperboard } from "lucide-react";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import type { ReactNode } from "react";
 
+import { ContinueWatching } from "@/components/continue-watching";
 import { EmptyState } from "@/components/empty-state";
-import { Link } from "@/i18n/navigation";
+import { Hero } from "@/components/hero";
+import { TitleRail } from "@/components/title-rail";
+import { getHomeData, type HomeRailKey } from "@/lib/titles/queries";
+
+export const revalidate = 60;
 
 type Props = { params: Promise<{ locale: string }> };
+
+const RAIL_HREF: Record<HomeRailKey, string> = {
+  trending: "/trending",
+  new: "/baru",
+  topRated: "/trending?sort=rating",
+  anime: "/anime",
+  film: "/film",
+  series: "/series",
+  action: "/genre/action",
+  comedy: "/genre/comedy",
+};
 
 export default async function HomePage({ params }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const t = await getTranslations("home");
+
+  const [t, data] = await Promise.all([getTranslations("home"), getHomeData(locale)]);
+  const rails = data.rails.filter((rail) => rail.items.length > 0);
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 pb-8">
-      <section className="py-10 sm:py-14">
-        <span className="inline-flex items-center rounded-full border border-[var(--line)] px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--fg-dim)]">
-          {t("kicker")}
-        </span>
-        <h1 className="mt-4 max-w-2xl font-display text-4xl font-bold leading-[1.05] tracking-tight text-balance sm:text-6xl">
-          {t("title")}
-        </h1>
-        <p className="mt-4 max-w-prose text-sm leading-relaxed text-[var(--fg-dim)] sm:text-base">
-          {t("body")}
-        </p>
-        <div className="mt-6 flex flex-wrap gap-2">
-          <Button asChild size="lg">
-            <Link href="/film">
-              {t("ctaFilms")}
-              <ArrowRight aria-hidden="true" />
-            </Link>
-          </Button>
-          <Button asChild size="lg" variant="outline">
-            <Link href="/series">
-              {t("ctaSeries")}
-              <ArrowRight aria-hidden="true" />
-            </Link>
-          </Button>
-        </div>
-      </section>
+    <div className="pb-10">
+      {data.hero ? <Hero item={data.hero} /> : null}
 
-      <Rail title={t("railTrending")}>
-        <EmptyState
-          icon={Clapperboard}
-          title={t("emptyTitle")}
-          body={t("emptyBody")}
-          action={{ label: t("ctaFilms"), href: "/film" }}
-        />
-      </Rail>
+      <div className="mx-auto w-full max-w-6xl px-4">
+        <ContinueWatching />
 
-      <Rail title={t("railNew")}>
-        <EmptyState icon={Tv} title={t("emptyTitle")} body={t("emptyBody")} />
-      </Rail>
-
-      <Rail title={t("railAnime")}>
-        <EmptyState icon={Clapperboard} title={t("emptyTitle")} body={t("emptyBody")} />
-      </Rail>
-    </div>
-  );
-}
-
-function Rail({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="mt-8">
-      <div className="mb-3 flex items-baseline justify-between">
-        <h2 className="font-display text-xl font-bold tracking-tight">{title}</h2>
+        {rails.length > 0 ? (
+          rails.map((rail) => (
+            <TitleRail
+              key={rail.key}
+              title={t(`rails.${rail.key}`)}
+              items={rail.items}
+              href={RAIL_HREF[rail.key]}
+              actionLabel={t("railAction")}
+            />
+          ))
+        ) : (
+          <div className="mt-8">
+            <EmptyState
+              icon={Clapperboard}
+              title={t("emptyTitle")}
+              body={t("emptyBody")}
+              action={{ label: t("railAction"), href: "/trending" }}
+            />
+          </div>
+        )}
       </div>
-      {children}
-    </section>
+    </div>
   );
 }

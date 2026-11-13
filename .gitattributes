@@ -1,0 +1,3 @@
+# Normalize line endings so Prettier's `endOfLine: "lf"` check passes on every
+# platform (Windows checkouts default to CRLF without this).
+* text=auto eol=lf

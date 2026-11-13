@@ -1,5 +1,5 @@
-// ONGX schema. Metadata-only: no video files, no stream URLs. `WatchOffer` points at
-// official providers; `Source.OWN` exists so the same tables can hold owned content later.
+// ONGX schema. Metadata-first: TMDB/AniList hold the catalog, official provider
+// links drive playback. `streamUrl` exists only for `Source.OWN` titles we host.
 
 generator client {
   provider = "prisma-client-js"
@@ -43,6 +43,13 @@ enum CreditRole {
   CREW
 }
 
+enum ReportStatus {
+  OPEN
+  REVIEWING
+  RESOLVED
+  REJECTED
+}
+
 enum SyncStatus {
   QUEUED
   RUNNING
@@ -72,6 +79,8 @@ model Title {
   ageRating    String?
   country      String?
   language     String?
+  /** Only set for `Source.OWN` titles; never populated from TMDB/AniList. */
+  streamUrl    String?
   status       TitleStatus @default(LIVE)
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
@@ -80,6 +89,7 @@ model Title {
   credits  Credit[]
   offers   WatchOffer[]
   episodes Episode[]
+  reports  Report[]
 
   @@unique([source, kind, remoteId])
   @@index([kind, status, popularity(sort: Desc)])
@@ -161,11 +171,29 @@ model Episode {
   airDate     DateTime?
   durationSec Int?
   stillPath   String?
+  /** Only set for `Source.OWN` episodes. */
+  streamUrl   String?
 
   title Title @relation(fields: [titleId], references: [id], onDelete: Cascade)
 
   @@unique([titleId, season, number])
   @@index([titleId, season, number])
+}
+
+model Report {
+  id        String       @id @default(cuid())
+  titleId   String?
+  reason    String
+  message   String?
+  contact   String?
+  status    ReportStatus @default(OPEN)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  title Title? @relation(fields: [titleId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt(sort: Desc)])
+  @@index([titleId])
 }
 
 model AdminUser {

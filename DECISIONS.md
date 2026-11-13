@@ -121,3 +121,35 @@ ASUMSI-025: Live smoke TMDB dijalankan sebagai file Vitest (`scripts/**/*.smoke.
 pernah memanggil jaringan; `describe.skipIf(!TMDB_API_KEY)` membuat perintah aman di mesin tanpa key.
 `compact()` dipakai setiap kali menulis input Prisma karena `exactOptionalPropertyTypes` menolak
 properti bernilai `undefined`.
+
+ASUMSI-026: Pemutar video hanya aktif untuk `Title.source === "OWN"` dan `streamUrl` terisi. Judul
+TMDB/AniList menampilkan trailer resmi + panel provider, bukan pemutar kosong. Alasannya: v1
+metadata-only dan kebijakan data melarang re-hosting/scraping `.m3u8`; `streamUrl` tidak pernah
+diisi adapter mana pun, hanya admin (Phase 10) yang boleh mengisinya.
+
+ASUMSI-027: Continue-watching disimpan device-local di `localStorage` (`ongx:continue`), bukan di
+server. Entri <10 detik dianggap belum mulai, entri ≥95 % dianggap selesai dan dibuang, daftar
+dibatasi 20 item terbaru. Alasannya: v1 belum punya akun, jadi sinkronisasi lintas perangkat tidak
+mungkin; aturan ambang mencegah rail mengirim penonton ke kredit atau ke iklan pembuka.
+
+ASUMSI-028: `offers` untuk judul AniList selalu kosong. AniList tidak menyediakan deep link
+provider resmi, dan kebijakan data melarang menebak URL atau memakai sumber tidak resmi. Judul
+AniList tetap tampil lengkap dengan trailer (bila ada) dan episode; panel offer hanya terisi untuk
+judul TMDB.
+
+ASUMSI-029: `POST /api/report` memakai fixed window Redis 5 laporan / 10 menit per IP dan langsung
+mengembalikan `429` + `retry-after` (tidak menunggu seperti limiter sync). Redis error = fail-open.
+Alasannya: endpoint anonim tanpa akun mudah disalahgunakan, tetapi cache outage tidak boleh
+mematikan pelaporan. `x-forwarded-for` dipakai lebih dulu agar benar di belakang reverse proxy.
+
+ASUMSI-030: Playwright memakai `channel: "chrome"` (Chrome sistem) di luar CI karena unduhan
+Chromium diblokir `ECONNRESET` di mesin dev; CI tetap memakai browser bawaan
+(`playwright install chromium`). Suite juga meng-abort `/_next/image` saat test: host gambar
+upstream tidak selalu reachable, dan request optimizer yang menggantung menghabiskan connection
+pool per-host Chrome sehingga navigasi RSC ikut tertahan. Test tetap memvalidasi routing,
+dialog, dan form; optimasi gambar diuji manual/CI dengan jaringan penuh.
+
+ASUMSI-031: Repo memakai `.gitattributes` `* text=auto eol=lf`. Prettier dikonfigurasi
+`endOfLine: "lf"`, sedangkan checkout Windows dengan `core.autocrlf=true` menulis CRLF sehingga
+`pnpm format:check` gagal untuk hampir semua file tanpa ada perubahan kode. Atribut ini memaksa
+LF di semua platform.

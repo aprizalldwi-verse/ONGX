@@ -2,6 +2,7 @@ import type {
   BrowseFilters,
   CatalogAdapter,
   Kind,
+  NormalizedEpisode,
   NormalizedGenre,
   NormalizedTitle,
   Page,
@@ -11,6 +12,7 @@ import type {
 import { genreFromSlug, genresFromApi } from "../genres";
 import { TMDB_TTL, TmdbClient, TmdbError, type TmdbClientOptions } from "./client";
 import {
+  normalizeEpisodes,
   normalizeMovieDetail,
   normalizeMovieListItem,
   normalizeOffers,
@@ -23,6 +25,7 @@ import {
   tmdbMovieDetailSchema,
   tmdbMoviePageSchema,
   tmdbSearchPageSchema,
+  tmdbSeasonDetailSchema,
   tmdbTvDetailSchema,
   tmdbTvPageSchema,
   tmdbWatchProvidersSchema,
@@ -222,6 +225,47 @@ export class TmdbAdapter implements CatalogAdapter {
     }
   }
 
+  async related(remoteId: string, limit = 12): Promise<NormalizedTitle[]> {
+    const ref = parseRemoteRef(remoteId);
+    const safeLimit = Math.min(20, Math.max(1, Math.trunc(limit)));
+
+    if (ref.type === "movie") return this.movieRelated(ref.id, safeLimit);
+    if (ref.type === "tv") return this.tvRelated(ref.id, safeLimit);
+
+    try {
+      return await this.movieRelated(ref.id, safeLimit);
+    } catch (error) {
+      if (error instanceof TmdbError && error.kind === "not_found") {
+        return this.tvRelated(ref.id, safeLimit);
+      }
+      throw error;
+    }
+  }
+
+  async episodes(remoteId: string, season = 1): Promise<NormalizedEpisode[]> {
+    const ref = parseRemoteRef(remoteId);
+    if (ref.type === "movie") return [];
+
+    const safeSeason = Math.max(0, Math.trunc(season));
+
+    try {
+      const data = await this.client.get(
+        `/tv/${ref.id}/season/${safeSeason}`,
+        {},
+        tmdbSeasonDetailSchema,
+        TMDB_TTL.detail,
+      );
+
+      return normalizeEpisodes(data);
+    } catch (error) {
+      // A bare id may be a movie: no episode list exists, but that is not an error.
+      if (ref.type === undefined && error instanceof TmdbError && error.kind === "not_found") {
+        return [];
+      }
+      throw error;
+    }
+  }
+
   private async movieDetail(id: string): Promise<NormalizedTitle> {
     const data = await this.client.get(
       `/movie/${id}`,
@@ -264,5 +308,27 @@ export class TmdbAdapter implements CatalogAdapter {
     );
 
     return normalizeOffers(data, region);
+  }
+
+  private async movieRelated(id: string, limit: number): Promise<NormalizedTitle[]> {
+    const data = await this.client.get(
+      `/movie/${id}/recommendations`,
+      { page: 1 },
+      tmdbMoviePageSchema,
+      TMDB_TTL.detail,
+    );
+
+    return data.results.slice(0, limit).map(normalizeMovieListItem);
+  }
+
+  private async tvRelated(id: string, limit: number): Promise<NormalizedTitle[]> {
+    const data = await this.client.get(
+      `/tv/${id}/recommendations`,
+      { page: 1 },
+      tmdbTvPageSchema,
+      TMDB_TTL.detail,
+    );
+
+    return data.results.slice(0, limit).map(normalizeTvListItem);
   }
 }

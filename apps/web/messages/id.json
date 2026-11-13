@@ -22,36 +22,189 @@
     "close": "Tutup",
     "language": "Ganti bahasa",
     "themeToLight": "Aktifkan tema terang",
-    "themeToDark": "Aktifkan tema gelap"
+    "themeToDark": "Aktifkan tema gelap",
+    "viewAll": "Lihat semua",
+    "previous": "Sebelumnya",
+    "next": "Berikutnya",
+    "pageOf": "Halaman {page} dari {total}"
   },
   "home": {
-    "kicker": "Fase 1 · Kerangka",
-    "title": "Nonton tanpa ribet.",
-    "body": "Katalog film, series, dan anime dengan tautan ke provider resmi. Tata letak, navigasi, dan i18n sudah aktif; data katalog tersambung pada Phase 3.",
-    "ctaFilms": "Jelajahi film",
-    "ctaSeries": "Jelajahi series",
-    "railTrending": "Sedang tren",
-    "railNew": "Baru rilis",
-    "railAnime": "Anime",
-    "emptyTitle": "Katalog belum tersambung",
-    "emptyBody": "Sinkronisasi TMDB berjalan di Phase 3. Sementara itu, navigasi, tema, dan bahasa sudah bisa diuji."
+    "heroKicker": "Sedang tren",
+    "watchNow": "Tonton sekarang",
+    "details": "Lihat detail",
+    "trailer": "Putar trailer",
+    "railAction": "Lihat semua",
+    "emptyTitle": "Katalog masih kosong",
+    "emptyBody": "Belum ada judul yang bisa ditampilkan. Jalankan sinkronisasi katalog lalu muat ulang halaman ini.",
+    "rails": {
+      "trending": "Sedang tren",
+      "new": "Baru rilis",
+      "topRated": "Rating tertinggi",
+      "anime": "Anime",
+      "film": "Film populer",
+      "series": "Series populer",
+      "action": "Aksi",
+      "comedy": "Komedi"
+    }
+  },
+  "browse": {
+    "filters": "Filter",
+    "genre": "Genre",
+    "year": "Tahun",
+    "sort": "Urutkan",
+    "all": "Semua",
+    "sortPopularity": "Paling populer",
+    "sortRating": "Rating tertinggi",
+    "sortNewest": "Terbaru",
+    "apply": "Terapkan",
+    "reset": "Reset",
+    "results": "{count} judul",
+    "emptyTitle": "Belum ada judul",
+    "emptyBody": "Coba ubah filter, atau kembali lagi setelah sinkronisasi berikutnya."
+  },
+  "detail": {
+    "overview": "Sinopsis",
+    "cast": "Pemain",
+    "crew": "Kru",
+    "genres": "Genre",
+    "episodes": "Episode",
+    "episodeCount": "{count} episode",
+    "related": "Mirip dengan ini",
+    "trailer": "Trailer",
+    "watch": "Tonton sekarang",
+    "runtime": "Durasi",
+    "country": "Negara",
+    "ageRating": "Rating usia",
+    "ratingLabel": "Rating {rating} dari 10",
+    "originalTitle": "Judul asli",
+    "noEpisodes": "Daftar episode belum tersedia.",
+    "noSynopsis": "Sinopsis belum tersedia.",
+    "metadataNote": "Metadata dari TMDB dan AniList.",
+    "backToCatalog": "Kembali ke katalog"
+  },
+  "offers": {
+    "title": "Tonton di provider resmi",
+    "empty": "Belum ada tautan provider resmi untuk judul ini di wilayahmu.",
+    "note": "Tautan membuka situs provider resmi di tab baru. ONGX tidak menghosting atau menyiarkan berkas video.",
+    "open": "Buka {provider}",
+    "types": {
+      "FLATRATE": "Langganan",
+      "FREE": "Gratis",
+      "ADS": "Dengan iklan",
+      "RENT": "Sewa",
+      "BUY": "Beli"
+    }
+  },
+  "episodes": {
+    "title": "Episode",
+    "season": "Musim {number}",
+    "episode": "Episode {number}",
+    "episodeTotal": "{count} episode",
+    "empty": "Daftar episode belum tersedia.",
+    "airDate": "Tayang {date}",
+    "duration": "{duration}",
+    "current": "Sedang dilihat"
+  },
+  "trailer": {
+    "title": "Trailer resmi",
+    "description": "Trailer diputar langsung dari YouTube.",
+    "play": "Putar trailer",
+    "close": "Tutup"
+  },
+  "watch": {
+    "notAvailableTitle": "Streaming belum tersedia",
+    "notAvailableBody": "ONGX belum menghosting berkas untuk judul ini. Gunakan tautan provider resmi di bawah, atau putar trailer resminya.",
+    "offersHeading": "Pilih provider resmi",
+    "episodeLabel": "Musim {season} · Episode {number}",
+    "backToDetail": "Kembali ke detail",
+    "trailer": "Putar trailer",
+    "chooseEpisode": "Pilih episode",
+    "noOffers": "Belum ada provider resmi untuk judul ini.",
+    "report": "Laporkan masalah",
+    "resume": "Lanjutkan menonton"
+  },
+  "person": {
+    "works": "Karya",
+    "castRole": "Pemain",
+    "crewRole": "Kru",
+    "empty": "Belum ada karya yang tercatat.",
+    "back": "Kembali"
+  },
+  "genre": {
+    "description": "Judul bergenre {name} dari seluruh sumber."
+  },
+  "report": {
+    "trigger": "Laporkan",
+    "title": "Laporkan masalah",
+    "description": "Bantu kami memperbaiki data. Laporan tidak memerlukan akun.",
+    "reason": "Alasan",
+    "reasonBroken": "Tautan rusak",
+    "reasonWrong": "Metadata salah",
+    "reasonUnavailable": "Tidak tersedia di provider",
+    "reasonOther": "Lainnya",
+    "message": "Detail (opsional)",
+    "messagePlaceholder": "Jelaskan masalahnya…",
+    "contact": "Email (opsional)",
+    "contactPlaceholder": "nama@contoh.com",
+    "submit": "Kirim laporan",
+    "submitting": "Mengirim…",
+    "success": "Terima kasih! Laporan sudah diterima.",
+    "error": "Laporan gagal dikirim. Coba lagi.",
+    "invalid": "Periksa kembali isian laporan.",
+    "close": "Tutup"
+  },
+  "share": {
+    "title": "Bagikan",
+    "copy": "Salin tautan",
+    "copied": "Tersalin",
+    "whatsapp": "WhatsApp",
+    "telegram": "Telegram",
+    "x": "X",
+    "native": "Bagikan…",
+    "error": "Tautan gagal disalin."
+  },
+  "player": {
+    "play": "Putar",
+    "pause": "Jeda",
+    "mute": "Bisukan",
+    "unmute": "Nyalakan suara",
+    "seekBack": "Mundur 10 detik",
+    "seekForward": "Maju 10 detik",
+    "fullscreen": "Layar penuh",
+    "exitFullscreen": "Keluar layar penuh",
+    "pip": "Mode gambar dalam gambar",
+    "quality": "Kualitas",
+    "auto": "Otomatis",
+    "subtitles": "Subtitle",
+    "subtitlesOff": "Mati",
+    "volume": "Volume",
+    "loading": "Memuat video…",
+    "error": "Video gagal dimuat.",
+    "retry": "Coba lagi",
+    "resume": "Melanjutkan dari {time}"
+  },
+  "continue": {
+    "title": "Lanjutkan menonton",
+    "episode": "M{season} E{number}",
+    "progress": "{percent}% ditonton",
+    "remove": "Hapus dari daftar"
   },
   "pages": {
     "film": {
       "title": "Film",
-      "body": "Kerangka halaman browse film. Grid, filter, dan paginasi aktif setelah adapter TMDB selesai."
+      "body": "Jelajahi film populer dan rating tertinggi. Setiap judul terhubung ke provider resmi."
     },
     "series": {
       "title": "Series",
-      "body": "Kerangka halaman browse series. Daftar episode akan menyusul bersama adapter TMDB."
+      "body": "Temukan series terbaru, lengkap dengan daftar episode dan tautan provider resmi."
     },
     "anime": {
       "title": "Anime",
-      "body": "Kerangka halaman anime. Sumber AniList bersifat opsional dan dikerjakan di Phase 4."
+      "body": "Anime pilihan dari AniList, dengan detail musim dan episode."
     },
     "trending": {
       "title": "Sedang tren",
-      "body": "Halaman peringkat lintas sumber. Skor dihitung dari popularitas, rating, dan kebaruan."
+      "body": "Judul paling populer lintas film, series, dan anime."
     },
     "new": {
       "title": "Baru rilis",
@@ -63,15 +216,15 @@
     },
     "watch": {
       "title": "Watch",
-      "body": "Kerangka halaman tonton. Player HLS untuk konten sendiri, trailer resmi, dan tautan provider menyusul di Phase 5."
+      "body": "Player HLS untuk konten sendiri, trailer resmi, dan tautan provider resmi."
     },
     "genre": {
       "title": "Genre",
-      "body": "Halaman genre lintas sumber. Daftar genre tetap diisi pada Phase 2."
+      "body": "Halaman genre lintas sumber."
     },
     "person": {
       "title": "Orang",
-      "body": "Halaman kru dan pemain. Diisi dari kredit TMDB pada Phase 3."
+      "body": "Halaman kru dan pemain, diisi dari kredit TMDB dan AniList."
     },
     "history": {
       "title": "Riwayat",

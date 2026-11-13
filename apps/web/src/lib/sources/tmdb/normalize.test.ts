@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { tmdbImage } from "./images";
 import {
+  normalizeEpisodes,
   normalizeMovieDetail,
   normalizeMovieListItem,
   normalizeOffers,
@@ -13,6 +14,7 @@ import {
   tmdbMovieDetailSchema,
   tmdbMovieListItemSchema,
   tmdbSearchItemSchema,
+  tmdbSeasonDetailSchema,
   tmdbTvDetailSchema,
   tmdbWatchProvidersSchema,
 } from "./schemas";
@@ -138,6 +140,11 @@ describe("normalizeTvDetail", () => {
     videos: { results: [] },
     alternative_titles: { titles: [] },
     credits: { cast: [], crew: [] },
+    seasons: [
+      { season_number: 0, name: "Specials", episode_count: 2, air_date: null },
+      { season_number: 1, name: "Season 1", episode_count: 8, air_date: "2024-01-05" },
+    ],
+    number_of_episodes: 8,
   });
 
   const title = normalizeTvDetail(detail, "ID");
@@ -148,6 +155,13 @@ describe("normalizeTvDetail", () => {
     expect(title.durationSec).toBe(45);
     expect(title.country).toBe("ID");
     expect(title.ageRating).toBe("13+");
+  });
+
+  it("keeps regular seasons and the total episode count", () => {
+    expect(title.seasons).toEqual([
+      { number: 1, name: "Season 1", episodeCount: 8, airDate: "2024-01-05" },
+    ]);
+    expect(title.episodesCount).toBe(8);
   });
 
   it("drops zero ratings and empty synopsis", () => {
@@ -238,6 +252,46 @@ describe("normalizeOffers", () => {
     expect(normalizeOffers(tmdbWatchProvidersSchema.parse({ results: { ID: {} } }), "ID")).toEqual(
       [],
     );
+  });
+});
+
+describe("normalizeEpisodes", () => {
+  it("maps season episodes and converts runtime minutes to seconds", () => {
+    const payload = tmdbSeasonDetailSchema.parse({
+      season_number: 2,
+      episodes: [
+        {
+          episode_number: 1,
+          name: "Awal",
+          overview: "  Babak baru. ",
+          air_date: "2025-02-01",
+          runtime: 48,
+          still_path: "/still.jpg",
+        },
+        {
+          episode_number: 2,
+          name: "",
+          overview: "",
+          air_date: null,
+          runtime: null,
+          still_path: null,
+        },
+      ],
+    });
+
+    const episodes = normalizeEpisodes(payload);
+    expect(episodes[0]).toMatchObject({
+      season: 2,
+      number: 1,
+      name: "Awal",
+      synopsis: "Babak baru.",
+      airDate: "2025-02-01",
+      durationSec: 2_880,
+      stillPath: "/still.jpg",
+    });
+    expect(episodes[1]).toMatchObject({ number: 2, name: "Episode 2" });
+    expect(episodes[1]?.durationSec).toBeUndefined();
+    expect(episodes[1]?.stillPath).toBeUndefined();
   });
 });
 

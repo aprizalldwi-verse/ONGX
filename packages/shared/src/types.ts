@@ -40,6 +40,25 @@ export interface NormalizedOffer {
   logoPath?: string | undefined;
 }
 
+/** One season of a series, as exposed by the source (TMDB). */
+export interface NormalizedSeason {
+  number: number;
+  name: string;
+  episodeCount: number;
+  airDate?: string | undefined;
+}
+
+/** Episode metadata; never a video file. */
+export interface NormalizedEpisode {
+  season: number;
+  number: number;
+  name: string;
+  synopsis?: string | undefined;
+  airDate?: string | undefined;
+  durationSec?: number | undefined;
+  stillPath?: string | undefined;
+}
+
 export interface NormalizedTitle {
   source: Source;
   kind: Kind;
@@ -63,6 +82,9 @@ export interface NormalizedTitle {
   ageRating?: string | undefined;
   country?: string | undefined;
   language?: string | undefined;
+  /** Season list for series detail pages (detail calls only). */
+  seasons?: NormalizedSeason[] | undefined;
+  episodesCount?: number | undefined;
   genres: NormalizedGenre[];
   people: NormalizedPerson[];
   offers: NormalizedOffer[];

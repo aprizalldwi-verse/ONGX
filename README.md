@@ -3,7 +3,7 @@
 Portal katalog film, series, dan anime dengan UI Indonesia-first.
 Metadata dari TMDB + AniList, pemutaran lewat provider resmi.
 
-**Status:** Phase 2 (database). Lihat `PROGRESS.md`.
+**Status:** Phase 5 (halaman katalog + player). Lihat `PROGRESS.md`.
 
 ## Prasyarat
 
@@ -15,12 +15,16 @@ Metadata dari TMDB + AniList, pemutaran lewat provider resmi.
 
 ```bash
 pnpm install
-cp .env.example .env.local     # Windows: Copy-Item .env.example .env.local
+Copy-Item .env.example apps/web/.env.local   # bash: cp .env.example apps/web/.env.local
 docker compose up -d
 pnpm db:deploy                 # terapkan migrasi
 pnpm db:seed                   # 24 genre (+ admin bila ADMIN_PASS* diisi)
+pnpm catalog:sync              # tarik metadata TMDB + AniList (butuh TMDB_API_KEY)
 pnpm dev                       # http://localhost:3000
 ```
+
+Semua perintah membaca env dari **`apps/web/.env.local`** (Next.js, Prisma, dan skrip sync).
+`.env.local` di root tidak dipakai.
 
 Catatan: bila ada PostgreSQL native yang memakai port 5432, hentikan dulu
 (`Stop-Service postgresql-x64-16`) — kalau tidak, koneksi `localhost:5432` tidak sampai ke container
@@ -34,8 +38,11 @@ pnpm build        # production build
 pnpm lint         # ESLint semua workspace
 pnpm typecheck    # tsc --noEmit semua workspace
 pnpm test         # Vitest semua workspace
-pnpm format       # Prettier
+pnpm format       # Prettier (tulis)
+pnpm format:check # Prettier (cek, dipakai gate)
+pnpm e2e          # Playwright smoke (butuh `pnpm build` + server/Chrome)
 
+pnpm catalog:sync # sinkronisasi metadata TMDB + AniList
 pnpm db:generate  # generate Prisma client
 pnpm db:migrate   # prisma migrate dev (butuh Postgres hidup)
 pnpm db:deploy    # prisma migrate deploy (produksi)
@@ -44,6 +51,10 @@ pnpm db:studio    # Prisma Studio
 ```
 
 Health check: `GET /api/health` — 200 `{status:"ok"|"degraded"}`, 503 bila DB/Redis down.
+
+E2E: `pnpm e2e` menjalankan Playwright terhadap build produksi. Di mesin dev dipakai Chrome
+sistem (`channel: "chrome"`); di CI pasang browser dengan
+`pnpm --filter @ongx/web exec playwright install --with-deps chromium`.
 
 ## Struktur
 

@@ -120,3 +120,64 @@ describe("TmdbAdapter.offers", () => {
     await expect(adapter.offers("movie:101", "ID")).resolves.toEqual([]);
   });
 });
+
+describe("TmdbAdapter.related", () => {
+  it("reads recommendations and respects the limit", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () =>
+      jsonResponse({
+        page: 1,
+        total_pages: 1,
+        total_results: 2,
+        results: [
+          { id: 1, title: "Satu", poster_path: "/1.jpg", release_date: "2024-01-01" },
+          { id: 2, title: "Dua", poster_path: "/2.jpg", release_date: "2023-01-01" },
+        ],
+      }),
+    );
+    const adapter = new TmdbAdapter({
+      apiKey: "test-key",
+      fetchImpl,
+      cache: new MemoryCache(),
+      sleep: async () => undefined,
+    });
+
+    const related = await adapter.related("movie:101", 1);
+
+    const url = new URL(String(fetchImpl.mock.calls[0]?.[0]));
+    expect(url.pathname).toBe("/3/movie/101/recommendations");
+    expect(related).toHaveLength(1);
+    expect(related[0]?.remoteId).toBe("1");
+  });
+});
+
+describe("TmdbAdapter.episodes", () => {
+  it("reads one TV season and maps its episodes", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () =>
+      jsonResponse({
+        season_number: 1,
+        episodes: [{ episode_number: 1, name: "Pilot", air_date: "2020-01-01", runtime: 42 }],
+      }),
+    );
+    const adapter = new TmdbAdapter({
+      apiKey: "test-key",
+      fetchImpl,
+      cache: new MemoryCache(),
+      sleep: async () => undefined,
+    });
+
+    const episodes = await adapter.episodes("tv:1396", 1);
+
+    const url = new URL(String(fetchImpl.mock.calls[0]?.[0]));
+    expect(url.pathname).toBe("/3/tv/1396/season/1");
+    expect(episodes[0]?.name).toBe("Pilot");
+    expect(episodes[0]?.durationSec).toBe(2_520);
+  });
+
+  it("returns an empty list for movies", async () => {
+    const fetchImpl = vi.fn<typeof fetch>();
+    const adapter = new TmdbAdapter({ apiKey: "test-key", fetchImpl });
+
+    await expect(adapter.episodes("movie:101", 1)).resolves.toEqual([]);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+});

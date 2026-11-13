@@ -1,13 +1,34 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
-import { PageStub } from "@/components/page-stub";
+import { CatalogListing } from "@/components/catalog-listing";
+import type { SearchParams } from "@/lib/titles/filters";
 
-type Props = { params: Promise<{ locale: string }> };
+export const revalidate = 600;
 
-export default async function Page({ params }: Props) {
+type Props = {
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<SearchParams>;
+};
+
+export async function generateMetadata() {
+  const t = await getTranslations("pages.series");
+  return { title: t("title"), description: t("body") };
+}
+
+export default async function Page({ params, searchParams }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations("pages.series");
 
-  return <PageStub title={t("title")} body={t("body")} />;
+  return (
+    <CatalogListing
+      locale={locale}
+      basePath="/series"
+      heading={t("title")}
+      description={t("body")}
+      searchParams={await searchParams}
+      kind="SERIES"
+      source="TMDB"
+    />
+  );
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { freeSlug, stripCollisionSuffix, titlePath } from "./slug";
+import { episodePath, freeSlug, stripCollisionSuffix, titlePath, watchPath } from "./slug";
 
 describe("freeSlug", () => {
   it("returns the base when it is free", async () => {
@@ -31,5 +31,24 @@ describe("titlePath", () => {
   it("maps kinds to public routes", () => {
     expect(titlePath("MOVIE", "dune-2021")).toBe("/film/dune-2021");
     expect(titlePath("SERIES", "the-bear-2022")).toBe("/series/the-bear-2022");
+  });
+
+  it("keeps AniList titles under /anime", () => {
+    expect(titlePath("SERIES", "frieren", "ANILIST")).toBe("/anime/frieren");
+    expect(titlePath("MOVIE", "a-silent-voice", "ANILIST")).toBe("/anime/a-silent-voice");
+  });
+});
+
+describe("watchPath", () => {
+  it("adds optional episode context", () => {
+    expect(watchPath("abc")).toBe("/watch/abc");
+    expect(watchPath("abc", { season: 1, number: 2 })).toBe("/watch/abc?s=1&e=2");
+  });
+});
+
+describe("episodePath", () => {
+  it("uses the source-aligned prefix", () => {
+    expect(episodePath("TMDB", "the-bear-2022", 1, 2)).toBe("/series/the-bear-2022/s/1/e/2");
+    expect(episodePath("ANILIST", "frieren", 1, 3)).toBe("/anime/frieren/s/1/e/3");
   });
 });

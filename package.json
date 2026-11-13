@@ -18,6 +18,8 @@
     "db:deploy": "pnpm --filter @ongx/db run deploy",
     "db:seed": "pnpm --filter @ongx/db run seed",
     "db:studio": "pnpm --filter @ongx/db run studio",
+    "catalog:sync": "pnpm --filter @ongx/web run catalog:sync",
+    "e2e": "pnpm --filter @ongx/web run e2e",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "husky"

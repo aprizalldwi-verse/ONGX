@@ -1,8 +1,10 @@
 import {
   buildTitleSlug,
   slugify,
+  type NormalizedEpisode,
   type NormalizedOffer,
   type NormalizedPerson,
+  type NormalizedSeason,
   type NormalizedTitle,
   type OfferType,
 } from "@ongx/shared";
@@ -13,6 +15,7 @@ import type {
   TmdbMovieListItem,
   TmdbProvider,
   TmdbSearchItem,
+  TmdbSeasonDetail,
   TmdbTvDetail,
   TmdbTvListItem,
   TmdbWatchProviders,
@@ -326,6 +329,7 @@ export function normalizeTvDetail(detail: TmdbTvDetail, region: string): Normali
   const base = normalizeTvListItem(detail);
   const titleId = alternateTitle(detail.alternative_titles, "ID") ?? base.titleId;
   const titleEn = alternateTitle(detail.alternative_titles, "US");
+  const seasons = normalizeSeasons(detail.seasons);
 
   return {
     ...base,
@@ -338,7 +342,52 @@ export function normalizeTvDetail(detail: TmdbTvDetail, region: string): Normali
     country: text(detail.origin_country?.[0]),
     backdropPath: text(detail.backdrop_path ?? undefined) ?? base.backdropPath,
     trailerKey: pickTrailerKey(detail.videos?.results),
+    ...(seasons.length > 0 ? { seasons } : {}),
+    ...(countOf(detail.number_of_episodes) !== undefined
+      ? { episodesCount: countOf(detail.number_of_episodes) }
+      : {}),
     genres: (detail.genres ?? []).length > 0 ? genresFromApi(detail.genres ?? []) : base.genres,
     people: [...castPeople(detail.credits?.cast ?? []), ...crewPeople(detail.credits?.crew ?? [])],
   };
+}
+
+function normalizeSeasons(seasons: TmdbTvDetail["seasons"]): NormalizedSeason[] {
+  const result: NormalizedSeason[] = [];
+
+  for (const season of seasons ?? []) {
+    if (season.season_number <= 0 || season.episode_count <= 0) continue;
+    const airDate = text(season.air_date ?? undefined);
+    result.push({
+      number: season.season_number,
+      name: season.name,
+      episodeCount: season.episode_count,
+      ...(airDate !== undefined ? { airDate } : {}),
+    });
+  }
+
+  return result;
+}
+
+/** Episode metadata only; TMDB never provides video URLs. */
+export function normalizeEpisodes(payload: TmdbSeasonDetail): NormalizedEpisode[] {
+  return payload.episodes.map((episode) => {
+    const name = text(episode.name) ?? `Episode ${episode.episode_number}`;
+    const synopsis = text(episode.overview);
+    const airDate = text(episode.air_date ?? undefined);
+    const durationSec =
+      typeof episode.runtime === "number" && episode.runtime > 0
+        ? Math.trunc(episode.runtime * 60)
+        : undefined;
+    const stillPath = text(episode.still_path ?? undefined);
+
+    return {
+      season: payload.season_number,
+      number: episode.episode_number,
+      name,
+      ...(synopsis !== undefined ? { synopsis } : {}),
+      ...(airDate !== undefined ? { airDate } : {}),
+      ...(durationSec !== undefined ? { durationSec } : {}),
+      ...(stillPath !== undefined ? { stillPath } : {}),
+    };
+  });
 }

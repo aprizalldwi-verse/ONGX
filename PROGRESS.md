@@ -68,13 +68,55 @@ Catatan Phase 3:
 - Cache TTL: listing 10 menit, detail 30 menit, genre 24 jam; budget 40 request / 10 detik.
 - Phase 3 belum menyentuh UI katalog; halaman masih stub sampai Phase 5.
 
-## Phase 4 — AniList adapter (opsional)
+## Phase 4 — AniList adapter ✅
 
-- [ ] (belum)
+- [x] GraphQL client AniList + Zod (media, streamingEpisodes, relations) + rate limit 90 req/60 s
+- [x] `AniListAdapter`: `trending`, `listing`, `search`, `detail`, `genres`, `offers`,
+      `parseRemoteRef` + registri adapter (`Source.ANILIST`)
+- [x] Normalisasi: `titleId` = romaji, `titleEn` = english, `titleNative` = native,
+      `averageScore/10`, `duration*60`, `format MOVIE` → `MOVIE` (selain itu `SERIES`)
+- [x] Genre dipetakan ke slug kanonik + `anime` otomatis; `streamingEpisodes` → `Episode`
+      (fallback `Episode N`), hanya musim 1
+- [x] `offers` selalu kosong (ASUMSI-028)
+- [x] `pnpm catalog:sync` (TMDB + AniList, `--limit`/`--tmdb`/`--anilist`, skip <24 jam,
+      `Promise.allSettled` untuk discovery parsial)
+- [x] Sinkronisasi katalog: **155 judul / 2.347 episode** (TMDB 98, AniList 57, 0 offer)
+- [x] Gate: lint, typecheck, test, build hijau
 
-## Phase 5 — Pages + player
+Catatan Phase 4:
 
-- [ ] (belum)
+- AniList tidak menyediakan deep link provider resmi, jadi panel offer hanya terisi untuk judul
+  TMDB. Keputusan: `DECISIONS.md` ASUMSI-028.
+- `pnpm catalog:sync` membaca `apps/web/.env.local` lewat `dotenv-cli`; skrip memakai alias `@/`
+  dan tidak boleh mengimpor `server-only`.
+
+## Phase 5 — Pages + player ✅
+
+- [x] Read model `lib/titles/{view,queries,paths,filters}.ts` + helper path
+      (`titlePath`, `watchPath`, `episodePath`)
+- [x] Halaman listing `/film`, `/series`, `/anime` (filter genre/tahun/sort, pagination) +
+      `/trending`, `/baru`, `/genre/[slug]`
+- [x] Home: hero popularitas + 8 rail (trending, baru, rating, anime, film, series, aksi, komedi),
+      rail kosong disembunyikan
+- [x] Detail `/film|/series|/anime/[slug]`: sinopsis, cast/crew, genre, offer resmi, trailer,
+      daftar episode, share, report
+- [x] Episode `/series/[slug]/s/[s]/e/[e]` + `/anime/[slug]/s/[s]/e/[e]` (prev/next + daftar musim)
+- [x] `/orang/[slug]` (karya cast/crew) + `/watch/[id]?s=&e=`
+- [x] Player HLS.js (quality, subtitle, volume, PiP, fullscreen, resume) — hanya untuk
+      `Source.OWN` + `streamUrl`; judul metadata-only menampilkan trailer + offer (ASUMSI-026)
+- [x] Continue-watching device-local (`ongx:continue`, min 10 s, buang ≥95 %, maks 20)
+- [x] `POST /api/report` (Zod, rate limit Redis 5/10 menit per IP, fail-open)
+- [x] `loading.tsx` / `error.tsx` / `not-found.tsx` untuk setiap rute publik baru
+- [x] Playwright smoke (3 skenario: home → detail, trailer + report, episode → watch)
+- [x] 20 file / 149 unit test web + 167 test seluruh workspace
+- [x] Gate: lint, typecheck, test, build, format:check hijau
+
+Catatan Phase 5:
+
+- Belum ada `Source.OWN`/`streamUrl`, jadi semua CTA watch jatuh ke trailer + panel offer kosong.
+- Slug tak dikenal masih mengembalikan HTTP 200 dengan UI 404 (ASUMSI-009b, Phase 8).
+- E2E memakai Chrome sistem di mesin dev (unduhan Chromium diblokir) dan memblokir
+  `/_next/image` agar koneksi gambar yang menggantung tidak menahan navigasi — ASUMSI-030.
 
 ## Phase 6 — Search, filter, library
 

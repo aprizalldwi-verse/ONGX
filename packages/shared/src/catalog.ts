@@ -1,5 +1,6 @@
 import type {
   Kind,
+  NormalizedEpisode,
   NormalizedGenre,
   NormalizedOffer,
   NormalizedTitle,
@@ -32,4 +33,8 @@ export interface CatalogAdapter {
   search(query: string, page: number): Promise<Page<NormalizedTitle>>;
   genres(): Promise<NormalizedGenre[]>;
   offers(remoteId: string, region: string): Promise<RawOffer[]>;
+  /** Source-recommended titles; optional because not every source exposes one. */
+  related?(remoteId: string, limit?: number): Promise<NormalizedTitle[]>;
+  /** Episode metadata for one season; omitted by sources without episode data. */
+  episodes?(remoteId: string, season: number): Promise<NormalizedEpisode[]>;
 }

@@ -162,12 +162,37 @@ export const tmdbMovieDetailSchema = tmdbMovieListItemSchema.extend({
 export const tmdbTvDetailSchema = tmdbTvListItemSchema.extend({
   episode_run_time: z.array(z.number()).optional(),
   number_of_seasons: nullableNumber,
+  number_of_episodes: nullableNumber,
+  seasons: z
+    .array(
+      z.object({
+        season_number: z.number(),
+        name: z.string(),
+        episode_count: z.number().default(0),
+        air_date: nullableString,
+      }),
+    )
+    .optional(),
   genres: z.array(tmdbGenreSchema).optional(),
   credits: tmdbCreditsSchema.optional(),
   videos: tmdbVideosSchema.optional(),
   content_ratings: tmdbContentRatingsSchema.optional(),
   alternative_titles: tmdbAlternativeTitlesSchema.optional(),
   origin_country: z.array(z.string()).optional(),
+});
+
+const tmdbSeasonEpisodeSchema = z.object({
+  episode_number: z.number(),
+  name: z.string().optional(),
+  overview: z.string().optional(),
+  air_date: nullableString,
+  runtime: nullableNumber,
+  still_path: nullableString,
+});
+
+export const tmdbSeasonDetailSchema = z.object({
+  season_number: z.number().default(1),
+  episodes: z.array(tmdbSeasonEpisodeSchema).default([]),
 });
 
 const tmdbProviderSchema = z.object({
@@ -194,6 +219,7 @@ export type TmdbTvListItem = z.infer<typeof tmdbTvListItemSchema>;
 export type TmdbSearchItem = z.infer<typeof tmdbSearchItemSchema>;
 export type TmdbMovieDetail = z.infer<typeof tmdbMovieDetailSchema>;
 export type TmdbTvDetail = z.infer<typeof tmdbTvDetailSchema>;
+export type TmdbSeasonDetail = z.infer<typeof tmdbSeasonDetailSchema>;
 export type TmdbWatchProviders = z.infer<typeof tmdbWatchProvidersSchema>;
 export type TmdbRegionProviders = z.infer<typeof tmdbRegionProvidersSchema>;
 export type TmdbProvider = z.infer<typeof tmdbProviderSchema>;

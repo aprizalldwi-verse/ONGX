@@ -22,36 +22,189 @@
     "close": "Close",
     "language": "Change language",
     "themeToLight": "Switch to light theme",
-    "themeToDark": "Switch to dark theme"
+    "themeToDark": "Switch to dark theme",
+    "viewAll": "View all",
+    "previous": "Previous",
+    "next": "Next",
+    "pageOf": "Page {page} of {total}"
   },
   "home": {
-    "kicker": "Phase 1 · Scaffold",
-    "title": "Watch without the fuss.",
-    "body": "A catalog of films, series, and anime with links to official providers. Layout, navigation, and i18n are live; catalog data lands in Phase 3.",
-    "ctaFilms": "Browse movies",
-    "ctaSeries": "Browse series",
-    "railTrending": "Trending",
-    "railNew": "New releases",
-    "railAnime": "Anime",
-    "emptyTitle": "Catalog not connected yet",
-    "emptyBody": "The TMDB sync runs in Phase 3. Meanwhile, navigation, theme, and language are ready to test."
+    "heroKicker": "Trending now",
+    "watchNow": "Watch now",
+    "details": "View details",
+    "trailer": "Play trailer",
+    "railAction": "View all",
+    "emptyTitle": "The catalog is empty",
+    "emptyBody": "There are no titles to show yet. Run the catalog sync and reload this page.",
+    "rails": {
+      "trending": "Trending",
+      "new": "New releases",
+      "topRated": "Top rated",
+      "anime": "Anime",
+      "film": "Popular movies",
+      "series": "Popular series",
+      "action": "Action",
+      "comedy": "Comedy"
+    }
+  },
+  "browse": {
+    "filters": "Filters",
+    "genre": "Genre",
+    "year": "Year",
+    "sort": "Sort",
+    "all": "All",
+    "sortPopularity": "Most popular",
+    "sortRating": "Top rated",
+    "sortNewest": "Newest",
+    "apply": "Apply",
+    "reset": "Reset",
+    "results": "{count} titles",
+    "emptyTitle": "No titles found",
+    "emptyBody": "Try a different filter, or come back after the next sync."
+  },
+  "detail": {
+    "overview": "Synopsis",
+    "cast": "Cast",
+    "crew": "Crew",
+    "genres": "Genres",
+    "episodes": "Episodes",
+    "episodeCount": "{count} episodes",
+    "related": "More like this",
+    "trailer": "Trailer",
+    "watch": "Watch now",
+    "runtime": "Runtime",
+    "country": "Country",
+    "ageRating": "Age rating",
+    "ratingLabel": "Rated {rating} out of 10",
+    "originalTitle": "Original title",
+    "noEpisodes": "No episode list is available yet.",
+    "noSynopsis": "No synopsis is available yet.",
+    "metadataNote": "Metadata from TMDB and AniList.",
+    "backToCatalog": "Back to catalog"
+  },
+  "offers": {
+    "title": "Watch on an official provider",
+    "empty": "No official provider link is available for this title in your region yet.",
+    "note": "Links open the official provider in a new tab. ONGX does not host or stream video files.",
+    "open": "Open {provider}",
+    "types": {
+      "FLATRATE": "Subscription",
+      "FREE": "Free",
+      "ADS": "With ads",
+      "RENT": "Rent",
+      "BUY": "Buy"
+    }
+  },
+  "episodes": {
+    "title": "Episodes",
+    "season": "Season {number}",
+    "episode": "Episode {number}",
+    "episodeTotal": "{count} episodes",
+    "empty": "No episode list is available yet.",
+    "airDate": "Aired {date}",
+    "duration": "{duration}",
+    "current": "Currently viewing"
+  },
+  "trailer": {
+    "title": "Official trailer",
+    "description": "The trailer plays directly from YouTube.",
+    "play": "Play trailer",
+    "close": "Close"
+  },
+  "watch": {
+    "notAvailableTitle": "Streaming is not available yet",
+    "notAvailableBody": "ONGX does not host a video file for this title. Use an official provider link below, or play the official trailer.",
+    "offersHeading": "Choose an official provider",
+    "episodeLabel": "Season {season} · Episode {number}",
+    "backToDetail": "Back to details",
+    "trailer": "Play trailer",
+    "chooseEpisode": "Choose an episode",
+    "noOffers": "No official provider is available for this title yet.",
+    "report": "Report a problem",
+    "resume": "Continue watching"
+  },
+  "person": {
+    "works": "Works",
+    "castRole": "Cast",
+    "crewRole": "Crew",
+    "empty": "No works recorded yet.",
+    "back": "Back"
+  },
+  "genre": {
+    "description": "Titles in the {name} genre across every source."
+  },
+  "report": {
+    "trigger": "Report",
+    "title": "Report a problem",
+    "description": "Help us fix the data. No account is required.",
+    "reason": "Reason",
+    "reasonBroken": "Broken link",
+    "reasonWrong": "Wrong metadata",
+    "reasonUnavailable": "Not available on the provider",
+    "reasonOther": "Something else",
+    "message": "Details (optional)",
+    "messagePlaceholder": "Describe the problem…",
+    "contact": "Email (optional)",
+    "contactPlaceholder": "name@example.com",
+    "submit": "Send report",
+    "submitting": "Sending…",
+    "success": "Thanks! Your report has been received.",
+    "error": "The report could not be sent. Try again.",
+    "invalid": "Check the report fields and try again.",
+    "close": "Close"
+  },
+  "share": {
+    "title": "Share",
+    "copy": "Copy link",
+    "copied": "Copied",
+    "whatsapp": "WhatsApp",
+    "telegram": "Telegram",
+    "x": "X",
+    "native": "Share…",
+    "error": "The link could not be copied."
+  },
+  "player": {
+    "play": "Play",
+    "pause": "Pause",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "seekBack": "Seek back 10 seconds",
+    "seekForward": "Seek forward 10 seconds",
+    "fullscreen": "Fullscreen",
+    "exitFullscreen": "Exit fullscreen",
+    "pip": "Picture in picture",
+    "quality": "Quality",
+    "auto": "Auto",
+    "subtitles": "Subtitles",
+    "subtitlesOff": "Off",
+    "volume": "Volume",
+    "loading": "Loading video…",
+    "error": "The video failed to load.",
+    "retry": "Try again",
+    "resume": "Resuming from {time}"
+  },
+  "continue": {
+    "title": "Continue watching",
+    "episode": "S{season} E{number}",
+    "progress": "{percent}% watched",
+    "remove": "Remove from list"
   },
   "pages": {
     "film": {
       "title": "Movies",
-      "body": "Movie browse shell. Grid, filters, and pagination come online with the TMDB adapter."
+      "body": "Browse popular and top-rated movies. Every title links to official providers."
     },
     "series": {
       "title": "Series",
-      "body": "Series browse shell. Episode lists follow with the TMDB adapter."
+      "body": "Find the latest series with episode lists and official provider links."
     },
     "anime": {
       "title": "Anime",
-      "body": "Anime browse shell. The AniList source is optional and scheduled for Phase 4."
+      "body": "Hand-picked anime from AniList with season and episode details."
     },
     "trending": {
       "title": "Trending",
-      "body": "Cross-source ranking. Score blends popularity, rating, and recency."
+      "body": "The most popular titles across movies, series, and anime."
     },
     "new": {
       "title": "New releases",
@@ -63,15 +216,15 @@
     },
     "watch": {
       "title": "Watch",
-      "body": "Watch shell. HLS player for owned content, official trailers, and provider links arrive in Phase 5."
+      "body": "HLS player for owned content, official trailers, and official provider links."
     },
     "genre": {
       "title": "Genre",
-      "body": "Cross-source genre page. The fixed genre set is seeded in Phase 2."
+      "body": "Cross-source genre page."
     },
     "person": {
       "title": "Person",
-      "body": "Cast and crew page. Populated from TMDB credits in Phase 3."
+      "body": "Cast and crew pages populated from TMDB and AniList credits."
     },
     "history": {
       "title": "History",

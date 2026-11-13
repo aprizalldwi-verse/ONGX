@@ -77,7 +77,7 @@ export async function upsertTitle(db: PrismaClient, input: NormalizedTitle): Pro
         titleSlugTaken(candidate, existing.id),
       );
       if (next !== existing.slug && input.kind !== "EPISODE") {
-        redirectFrom = titlePath(input.kind, existing.slug);
+        redirectFrom = titlePath(input.kind, existing.slug, input.source);
       }
       slug = next;
     }
@@ -230,7 +230,7 @@ export async function upsertTitle(db: PrismaClient, input: NormalizedTitle): Pro
     }
 
     if (redirectFrom !== undefined) {
-      const toPath = titlePath(input.kind === "SERIES" ? "SERIES" : "MOVIE", slug);
+      const toPath = titlePath(input.kind === "SERIES" ? "SERIES" : "MOVIE", slug, input.source);
       await tx.redirect.upsert({
         where: { fromPath: redirectFrom },
         update: { toPath },
