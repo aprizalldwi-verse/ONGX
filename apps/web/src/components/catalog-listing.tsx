@@ -52,6 +52,7 @@ export async function CatalogListing({
         ...(source !== undefined ? { source } : {}),
         ...(filters.genre !== undefined ? { genre: filters.genre } : {}),
         ...(filters.year !== undefined ? { year: filters.year } : {}),
+        ...(filters.provider !== undefined ? { provider: filters.provider } : {}),
       },
       locale,
     ),

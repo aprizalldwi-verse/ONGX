@@ -130,6 +130,27 @@ Catatan Phase 5:
 - E2E memakai Chrome sistem di mesin dev (unduhan Chromium diblokir) dan memblokir
   `/_next/image` agar koneksi gambar yang menggantung tidak menahan navigasi — ASUMSI-030.
 
+## Vidio-first polish ✅
+
+- [x] CTA offer Vidio memakai deep link pencarian resmi `https://www.vidio.com/search?q=<judul>`
+      (menggantikan link agregat TMDB); offer Vidio ganda (langganan + iklan) didedupe jadi satu
+      kartu — ASUMSI-036
+- [x] Filter `provider=vidio` ("Tersedia di Vidio") di `/film`, `/series`, `/anime`, `/trending`,
+      `/baru`, dan `/genre/[slug]`
+- [x] Badge "Vidio" di poster card untuk judul yang punya offer Vidio
+- [x] Rail "Tersedia di Vidio" di home (setelah trending, tautan ke `/trending?provider=vidio`)
+- [x] 21 file / 164 unit test web (182 test seluruh workspace)
+- [x] Gate: lint, typecheck, test, build, format:check hijau
+
+Catatan Vidio-first:
+
+- Deteksi offer Vidio memakai `providerName` case-insensitive atau `providerId` `489`/slug
+  `vidio`, sehingga data TMDB (`Vidio`) dan AniList (`vidio`) sama-sama tertangkap.
+- `titleCardSelect` mengambil maksimal satu offer Vidio per kartu untuk badge, sedangkan filter
+  listing memakai relasi `offers.some`. Keduanya berbagi `vidioOfferWhere` di `queries.ts`.
+- Data katalog saat ini hanya punya 2 judul dengan offer Vidio (One Piece, The Last Attack);
+  rail tetap tampil dan filter mengembalikan hasil yang sama sampai sync berikutnya menambah judul.
+
 ## Phase 6 — Search, filter, library
 
 - [ ] (belum)

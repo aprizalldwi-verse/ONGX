@@ -185,3 +185,14 @@ melewati skip freshness 24 jam supaya perubahan normalisasi bisa mem-backfill da
 Prisma di `packages/db` memakai `transactionOptions: { maxWait: 10_000, timeout: 30_000 }` karena
 judul dengan cast besar (ratusan query person/genre) melewati batas transaksi default 5 detik dan
 menggagalkan sync.
+
+ASUMSI-036: Offer Vidio tidak memakai `link` agregat TMDB (satu URL untuk semua provider).
+Read model (`lib/providers.ts` + `lib/titles/view.ts`) menulis ulang setiap offer Vidio menjadi
+`https://www.vidio.com/search?q=<judul ter-encode>`, dan offer Vidio ganda (FLATRATE + ADS)
+didedupe menjadi satu kartu karena semuanya menuju URL yang sama. Deteksi memakai
+`providerName` case-insensitive atau `providerId` `489`/slug `vidio`. Filter "Tersedia di
+Vidio" memakai relasi `offers.some` yang sama, dan `titleCardSelect` mengambil maksimal satu
+offer Vidio per kartu untuk badge poster. Alasan: Vidio tidak punya API playback publik dan TMDB
+tidak menyediakan deep link per judul; pencarian resmi adalah satu-satunya tautan yang diizinkan
+kebijakan data. Nama provider ("Vidio") adalah nama merek, jadi dipakai sebagai konstanta data
+(`VIDIO_PROVIDER_NAME`), bukan string UI yang diterjemahkan.

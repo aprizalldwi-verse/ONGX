@@ -14,6 +14,7 @@ type Props = { params: Promise<{ locale: string }> };
 
 const RAIL_HREF: Record<HomeRailKey, string> = {
   trending: "/trending",
+  vidio: "/trending?provider=vidio",
   new: "/baru",
   topRated: "/trending?sort=rating",
   anime: "/anime",

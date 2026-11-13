@@ -2,6 +2,7 @@ import Image from "next/image";
 import { Star } from "lucide-react";
 
 import { Link } from "@/i18n/navigation";
+import { VIDIO_PROVIDER_NAME } from "@/lib/providers";
 import type { TitleCardView } from "@/lib/titles/view";
 
 export interface PosterCardProps {
@@ -43,6 +44,13 @@ export function PosterCard({ item, priority = false, className }: PosterCardProp
         {item.source === "ANILIST" ? (
           <span className="absolute right-1.5 top-1.5 rounded-full bg-[var(--accent)] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--accent-fg)]">
             Anime
+          </span>
+        ) : null}
+
+        {item.availableOnVidio ? (
+          <span className="absolute bottom-1.5 left-1.5 inline-flex items-center gap-1 rounded-full bg-black/80 px-1.5 py-0.5 text-[10px] font-semibold text-white backdrop-blur">
+            <span aria-hidden="true" className="size-1.5 rounded-full bg-[#e4002b]" />
+            {VIDIO_PROVIDER_NAME}
           </span>
         ) : null}
       </div>

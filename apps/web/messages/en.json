@@ -38,6 +38,7 @@
     "emptyBody": "There are no titles to show yet. Run the catalog sync and reload this page.",
     "rails": {
       "trending": "Trending",
+      "vidio": "Available on Vidio",
       "new": "New releases",
       "topRated": "Top rated",
       "anime": "Anime",
@@ -51,6 +52,8 @@
     "filters": "Filters",
     "genre": "Genre",
     "year": "Year",
+    "provider": "Provider",
+    "providerVidio": "Available on Vidio",
     "sort": "Sort",
     "all": "All",
     "sortPopularity": "Most popular",

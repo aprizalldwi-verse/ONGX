@@ -38,6 +38,7 @@
     "emptyBody": "Belum ada judul yang bisa ditampilkan. Jalankan sinkronisasi katalog lalu muat ulang halaman ini.",
     "rails": {
       "trending": "Sedang tren",
+      "vidio": "Tersedia di Vidio",
       "new": "Baru rilis",
       "topRated": "Rating tertinggi",
       "anime": "Anime",
@@ -51,6 +52,8 @@
     "filters": "Filter",
     "genre": "Genre",
     "year": "Tahun",
+    "provider": "Provider",
+    "providerVidio": "Tersedia di Vidio",
     "sort": "Urutkan",
     "all": "Semua",
     "sortPopularity": "Paling populer",

@@ -1,6 +1,7 @@
 import type { Kind, OfferType, Source } from "@ongx/shared";
 
 import { imageUrl } from "@/lib/images";
+import { isVidioOffer, providerUrl } from "@/lib/providers";
 
 import { episodePath, titlePath, watchPath } from "./slug";
 
@@ -24,6 +25,11 @@ export interface TitleCardRow {
   year?: number | null | undefined;
   rating?: number | null | undefined;
   trailerKey?: string | null | undefined;
+  /**
+   * Card queries fetch at most one Vidio offer to drive the poster badge;
+   * detail queries reuse the field for the full offer list.
+   */
+  offers?: ReadonlyArray<Pick<OfferRow, "providerId" | "providerName">> | null | undefined;
 }
 
 export interface GenreRow {
@@ -90,6 +96,7 @@ export interface TitleCardView {
   kind: TitleKind;
   source: Source;
   trailerKey?: string | undefined;
+  availableOnVidio: boolean;
 }
 
 export interface GenreView {
@@ -238,6 +245,7 @@ export function toTitleCard(row: TitleCardRow, locale: string): TitleCardView {
   const titleSecondary = clean(secondarySource);
   const rating = ratingOf(row.rating);
   const trailerKey = clean(row.trailerKey);
+  const availableOnVidio = (row.offers ?? []).some((offer) => isVidioOffer(offer));
 
   return {
     id: row.id,
@@ -254,6 +262,7 @@ export function toTitleCard(row: TitleCardRow, locale: string): TitleCardView {
     kind,
     source: row.source,
     ...(trailerKey !== undefined ? { trailerKey } : {}),
+    availableOnVidio,
   };
 }
 
@@ -271,14 +280,14 @@ function creditView(credit: CreditRow): PersonCreditView {
   };
 }
 
-function offerView(offer: OfferRow): OfferView {
+function offerView(offer: OfferRow, title: string): OfferView {
   const logo = imageUrl(offer.logoPath, "w92");
 
   return {
     providerId: offer.providerId,
     providerName: offer.providerName,
     offerType: offer.offerType,
-    url: offer.url,
+    url: providerUrl(offer, title),
     ...(logo !== undefined ? { logoUrl: logo } : {}),
   };
 }
@@ -298,6 +307,22 @@ export function sortOffers(offers: OfferView[]): OfferView[] {
       OFFER_ORDER[a.offerType] - OFFER_ORDER[b.offerType] ||
       a.providerName.localeCompare(b.providerName),
   );
+}
+
+/**
+ * Every Vidio offer resolves to the same search deep link, so showing one card
+ * per offer type (subscription + ads) would duplicate the same destination.
+ * The list is sorted first, so the best offer type survives.
+ */
+export function dedupeVidioOffers(offers: OfferView[]): OfferView[] {
+  let seen = false;
+
+  return offers.filter((offer) => {
+    if (!isVidioOffer(offer)) return true;
+    if (seen) return false;
+    seen = true;
+    return true;
+  });
 }
 
 export function toEpisodeView(
@@ -378,7 +403,7 @@ export function toTitleDetail(row: TitleDetailRow, locale: string): TitleDetailV
     genres: row.genres.map((entry) => genreView(entry.genre, locale)),
     cast,
     crew,
-    offers: sortOffers(row.offers.map(offerView)),
+    offers: dedupeVidioOffers(sortOffers(row.offers.map((offer) => offerView(offer, card.title)))),
     seasons,
     episodeCount: row.episodes.length,
     hasOwnStream: Boolean(streamUrl),

@@ -15,6 +15,7 @@ export interface FilterBarProps {
   years: number[];
   showGenre?: boolean;
   showYear?: boolean;
+  showProvider?: boolean;
   showSort?: boolean;
 }
 
@@ -29,6 +30,7 @@ export async function FilterBar({
   years,
   showGenre = true,
   showYear = true,
+  showProvider = true,
   showSort = true,
 }: FilterBarProps) {
   const t = await getTranslations("browse");
@@ -70,6 +72,16 @@ export async function FilterBar({
                   {year}
                 </option>
               ))}
+            </select>
+          </label>
+        ) : null}
+
+        {showProvider ? (
+          <label className="flex min-w-[170px] flex-col gap-1 text-xs text-[var(--fg-dim)]">
+            {t("provider")}
+            <select name="provider" defaultValue={filters.provider ?? ""} className={selectClass}>
+              <option value="">{t("all")}</option>
+              <option value="vidio">{t("providerVidio")}</option>
             </select>
           </label>
         ) : null}

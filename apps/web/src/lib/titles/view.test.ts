@@ -114,6 +114,14 @@ describe("toTitleCard", () => {
     expect(bare.trailerKey).toBeUndefined();
     expect(bare.posterUrl).toBeUndefined();
   });
+
+  it("flags Vidio availability from the card offer", () => {
+    expect(toTitleCard(card(), "id").availableOnVidio).toBe(false);
+    expect(
+      toTitleCard(card({ offers: [{ providerId: "489", providerName: "Vidio" }] }), "id")
+        .availableOnVidio,
+    ).toBe(true);
+  });
 });
 
 describe("toTitleDetail", () => {
@@ -168,6 +176,47 @@ describe("toTitleDetail", () => {
     expect(view.genres[0]?.name).toBe("Action");
     expect(view.durationLabel).toBe("2h 35m");
     expect(toTitleDetail(detail(), "id").durationLabel).toBe("2j 35m");
+  });
+
+  it("rewrites Vidio offers to one official search link and keeps other URLs", () => {
+    const view = toTitleDetail(
+      detail({
+        titleId: "One Piece",
+        offers: [
+          {
+            region: "ID",
+            providerId: "489",
+            providerName: "Vidio",
+            offerType: "FLATRATE",
+            url: "https://www.themoviedb.org/tv/37854/watch?locale=ID",
+          },
+          {
+            region: "ID",
+            providerId: "489",
+            providerName: "Vidio",
+            offerType: "ADS",
+            url: "https://www.themoviedb.org/tv/37854/watch?locale=ID",
+          },
+          {
+            region: "ID",
+            providerId: "8",
+            providerName: "Netflix",
+            offerType: "FLATRATE",
+            url: "https://www.netflix.com/title/80107103",
+          },
+        ],
+      }),
+      "id",
+    );
+
+    const vidioOffers = view.offers.filter((offer) => offer.providerName === "Vidio");
+    expect(vidioOffers).toHaveLength(1);
+    expect(vidioOffers[0]?.offerType).toBe("FLATRATE");
+    expect(vidioOffers[0]?.url).toBe("https://www.vidio.com/search?q=One%20Piece");
+    expect(view.offers.find((offer) => offer.providerName === "Netflix")?.url).toBe(
+      "https://www.netflix.com/title/80107103",
+    );
+    expect(view.availableOnVidio).toBe(true);
   });
 });
 

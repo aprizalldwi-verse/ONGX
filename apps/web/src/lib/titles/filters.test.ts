@@ -27,6 +27,11 @@ describe("parseBrowseFilters", () => {
   it("uses the first value when a param repeats", () => {
     expect(parseBrowseFilters({ genre: ["comedy", "action"] }).genre).toBe("comedy");
   });
+
+  it("accepts the Vidio provider filter and drops unknown providers", () => {
+    expect(parseBrowseFilters({ provider: "Vidio" }).provider).toBe("vidio");
+    expect(parseBrowseFilters({ provider: "netflix" }).provider).toBeUndefined();
+  });
 });
 
 describe("browseQuery", () => {
@@ -43,5 +48,12 @@ describe("browseQuery", () => {
     expect(
       browseQuery({ genre: "action", sort: "rating", page: 1 }, { page: 2, genre: undefined }),
     ).toEqual({ genre: undefined, sort: "rating", page: 2 });
+  });
+
+  it("preserves the provider filter across pages", () => {
+    expect(browseQuery({ provider: "vidio", page: 1 }, { page: 3 })).toEqual({
+      provider: "vidio",
+      page: 3,
+    });
   });
 });

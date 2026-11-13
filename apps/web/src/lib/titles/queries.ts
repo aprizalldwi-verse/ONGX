@@ -3,6 +3,7 @@ import "server-only";
 import type { Prisma, Source } from "@ongx/db";
 
 import { prisma } from "@/lib/prisma";
+import { VIDIO_PROVIDER_NAME } from "@/lib/providers";
 
 import {
   toHero,
@@ -34,6 +35,11 @@ const titleCardSelect = {
   year: true,
   rating: true,
   trailerKey: true,
+  offers: {
+    where: { providerName: { equals: VIDIO_PROVIDER_NAME, mode: "insensitive" } },
+    take: 1,
+    select: { providerId: true, providerName: true },
+  },
 } satisfies Prisma.TitleSelect;
 
 const genreSelect = {
@@ -95,15 +101,17 @@ const heroSelect = {
 } satisfies Prisma.TitleSelect;
 
 export type HomeRailKey =
-  "trending" | "new" | "topRated" | "anime" | "film" | "series" | "action" | "comedy";
+  "trending" | "vidio" | "new" | "topRated" | "anime" | "film" | "series" | "action" | "comedy";
 
 export type BrowseSort = "popularity" | "rating" | "newest";
+export type ProviderFilter = "vidio";
 
 export interface BrowseParams {
   kind?: TitleKind | undefined;
   source?: Source | undefined;
   genre?: string | undefined;
   year?: number | undefined;
+  provider?: ProviderFilter | undefined;
   sort?: BrowseSort | undefined;
   page?: number | undefined;
   perPage?: number | undefined;
@@ -159,6 +167,11 @@ function liveWhere(extra: Prisma.TitleWhereInput = {}): Prisma.TitleWhereInput {
   return { status: "LIVE", ...extra };
 }
 
+/** Case-insensitive so TMDB ("Vidio") and AniList ("vidio") both match. */
+const vidioOfferWhere: Prisma.WatchOfferWhereInput = {
+  providerName: { equals: VIDIO_PROVIDER_NAME, mode: "insensitive" },
+};
+
 export async function browseTitles(params: BrowseParams = {}, locale = "id"): Promise<TitlePage> {
   const page = clampPage(params.page);
   const perPage = clampPerPage(params.perPage);
@@ -167,6 +180,7 @@ export async function browseTitles(params: BrowseParams = {}, locale = "id"): Pr
     ...(params.source !== undefined ? { source: params.source } : {}),
     ...(params.year !== undefined ? { year: params.year } : {}),
     ...(params.genre !== undefined ? { genres: { some: { genre: { slug: params.genre } } } } : {}),
+    ...(params.provider === "vidio" ? { offers: { some: vidioOfferWhere } } : {}),
   });
 
   const [rows, totalItems] = await Promise.all([
@@ -201,6 +215,11 @@ const RAILS: RailDefinition[] = [
     key: "new",
     where: liveWhere({ releasedAt: { not: null } }),
     orderBy: NEWEST_ORDER,
+  },
+  {
+    key: "vidio",
+    where: liveWhere({ offers: { some: vidioOfferWhere } }),
+    orderBy: POPULARITY_ORDER,
   },
   {
     key: "topRated",
