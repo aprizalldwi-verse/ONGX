@@ -16,6 +16,7 @@
     "db:generate": "pnpm --filter @ongx/db run generate",
     "db:migrate": "pnpm --filter @ongx/db run migrate",
     "db:deploy": "pnpm --filter @ongx/db run deploy",
+    "db:reset": "pnpm --filter @ongx/db run reset",
     "db:seed": "pnpm --filter @ongx/db run seed",
     "db:studio": "pnpm --filter @ongx/db run studio",
     "catalog:sync": "pnpm --filter @ongx/web run catalog:sync",

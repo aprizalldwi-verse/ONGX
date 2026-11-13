@@ -28,6 +28,7 @@ Catatan Phase 1:
       Episode, AdminUser, Redirect, SyncJob) + enum `Source`/`Kind`/`OfferType`/`CreditRole`
 - [x] Migration awal `20261112000000_init` (SQL digenerate via `migrate diff`, tanpa DB hidup)
 - [x] Seed idempotent: 24 genre (nama id+en) + admin dari `ADMIN_PASS`/`ADMIN_PASS_HASH`
+- [x] Script `db:generate` / `db:migrate` / `db:deploy` / `db:reset` / `db:seed` / `db:studio`
 - [x] Prisma client singleton (`@ongx/db`) + guard `server-only` di web
 - [x] `/api/health` (DB + Redis, 200/503) + unit test laporan health
 - [x] Terapkan migrasi ke Postgres lokal (Docker, `20261112000000_init` applied)
