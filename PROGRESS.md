@@ -302,7 +302,38 @@ Catatan Phase 9:
 
 ## Phase 10 — Admin
 
-- [ ] (belum)
+- [x] Sesi stateless: cookie `ongx_admin` HMAC-SHA256 (username + expiry, TTL 12 jam,
+      `httpOnly`, `SameSite=Lax`, `Secure` di produksi) tanpa dependency baru; secret dari
+      `ADMIN_SESSION_SECRET` (min 32 karakter) atau fallback `ADMIN_PASS_HASH`
+- [x] Login bcrypt dengan dummy-hash anti-enumerasi, throttle Redis 10 percobaan / 15 menit per
+      IP (fail-open), logout, dan banner bila panel belum dikonfigurasi
+- [x] Guard `requireAdminSession` untuk seluruh panel, metadata `noindex`, halaman
+      `force-dynamic` (login tidak lagi diprerender statis)
+- [x] Dashboard: hitungan judul/laporan per status, status worker dari heartbeat, lima
+      `SyncJob` terakhir, dan pintasan
+- [x] Moderasi laporan: filter status + pagination, transisi `REVIEWING`/`RESOLVED`/`REJECTED`
+- [x] Judul: pencarian + filter status/jenis/sumber, pagination; edit status untuk
+      TMDB/AniList, edit penuh + `streamUrl` untuk `OWN` dengan validasi skema
+- [x] Sinkronisasi: riwayat job + filter/pagination, status worker, dan trigger manual
+      `sync.catalog` / `sync.offers` / `maintenance.cleanup` lewat BullMQ
+- [x] i18n namespace `admin` di `id`/`en` (kunci identik), UI Indonesia-first + `/en`
+- [x] Unit test baru (session token, validasi, schema, format) — total 270; e2e admin (guard,
+      kredensial salah, moderasi, edit status, sync, `/en`, logout, noindex) — total 18
+- [x] Gate: lint, typecheck, test, build, e2e, format:check hijau
+
+Catatan Phase 10:
+
+- Login manual di mesin dev membutuhkan secret sesi (`ADMIN_SESSION_SECRET` atau
+  `ADMIN_PASS_HASH`) dan admin hasil seed (isi `ADMIN_PASS` di `.env.local`, jalankan
+  `pnpm db:seed`, simpan hash yang dicetak). `.env.local` saat ini mengosongkan keduanya, jadi
+  panel menampilkan status "belum dikonfigurasi" sampai diisi. E2E menyuntikkan secret lewat
+  `webServer.env` dan membuat akun `e2e-admin` sementara.
+- Trigger manual hanya mengantrekan job; eksekusi tetap membutuhkan `pnpm worker`. Tanpa Redis
+  halaman menampilkan banner error dan tidak menulis apa pun.
+- `streamUrl` hanya untuk `Source.OWN`; skema menolak `javascript:`, `//`, control character,
+  dan nilai lebih dari 2.048 karakter (ASUMSI-056).
+- Verifikasi runtime: `enqueueAdminJob("maintenance.cleanup")` mengembalikan `jobId` dari queue
+  `ongx-jobs`; job uji dihapus lagi setelah verifikasi karena worker tidak dijalankan.
 
 ## Phase 11 — Hardening
 

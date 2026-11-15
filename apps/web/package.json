@@ -19,6 +19,7 @@
     "@ongx/db": "workspace:*",
     "@ongx/shared": "workspace:*",
     "@ongx/ui": "workspace:*",
+    "bcryptjs": "3.0.3",
     "bullmq": "6.7.6",
     "cron-parser": "5.10.6",
     "hls.js": "^1.7.4",

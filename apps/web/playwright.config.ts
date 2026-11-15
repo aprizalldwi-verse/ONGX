@@ -9,8 +9,7 @@ export default defineConfig({
   fullyParallel: false,
   timeout: 30_000,
   retries: process.env.CI ? 2 : 0,
-  reporter: process.env.CI ? "github" : "list",
-  // Seeds the `Source.OWN` fixture used by the player/offer tests and removes
+  reporter: process.env.CI ? "github" : "list", // Seeds the `Source.OWN` fixture used by the player/offer tests and removes
   // it again afterwards. Needs `DATABASE_URL`; the `e2e` script loads `.env.local`.
   globalSetup: "./e2e/global-setup.ts",
   globalTeardown: "./e2e/global-teardown.ts",
@@ -26,6 +25,11 @@ export default defineConfig({
     url: "http://localhost:3000",
     reuseExistingServer: process.env.CI !== "true",
     timeout: 120_000,
+    // The suite seeds a throwaway admin; its session cookie must stay valid even
+    // when the developer's `.env.local` has no admin secret yet.
+    env: {
+      ADMIN_SESSION_SECRET: "e2e-admin-session-secret-0123456789abcdef",
+    },
   },
   // Use the locally installed Chrome instead of Playwright's bundled build. The
   // CI image installs `chromium` explicitly, so `channel` is only set locally.

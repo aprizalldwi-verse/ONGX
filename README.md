@@ -3,7 +3,7 @@
 Portal katalog film, series, dan anime dengan UI Indonesia-first.
 Metadata dari TMDB + AniList, pemutaran lewat provider resmi.
 
-**Status:** Phase 9 (worker latar belakang). Lihat `PROGRESS.md`.
+**Status:** Phase 10 (panel admin). Lihat `PROGRESS.md`.
 
 ## Prasyarat
 
@@ -81,13 +81,47 @@ Retry: 3 percobaan dengan exponential backoff (1, 2, 4 menit). Worker menulis he
 Redis (`ongx:worker:heartbeat`, TTL 45 detik) dan menutup antrean dengan rapi pada SIGINT/SIGTERM.
 Konfigurasi lengkap ada di `.env.example` (`WORKER_*`).
 
+### Admin (Phase 10)
+
+Panel admin ada di `/admin` (Inggris: `/en/admin`). Semua halaman di balik guard akan
+mengalihkan ke `/admin/login` bila belum ada sesi.
+
+Menyiapkan akun pertama:
+
+```bash
+# 1. Isi password sekali di apps/web/.env.local
+#    ADMIN_PASS="password-kuat"
+pnpm db:seed            # mencetak hash bcrypt; simpan ke ADMIN_PASS_HASH
+
+# 2. Ganti ADMIN_PASS dengan hash yang dicetak, lalu (opsional) isi secret sesi
+#    ADMIN_PASS_HASH="$2b$12$..."
+#    ADMIN_SESSION_SECRET="<32+ karakter acak>"   # mis. openssl rand -base64 32
+```
+
+`ADMIN_SESSION_SECRET` opsional: bila kosong, cookie sesi ditandatangani dengan
+`ADMIN_PASS_HASH`, sehingga mengganti password otomatis membatalkan sesi lama. Mengisi secret
+terpisah memungkinkan rotasi password tanpa logout massal.
+
+Isi panel:
+
+- **Ringkasan** — hitungan judul/laporan per status, heartbeat worker, dan sync terakhir.
+- **Laporan** — moderasi laporan pengguna (`REVIEWING` / `RESOLVED` / `REJECTED`).
+- **Judul** — cari/filter katalog; ubah status judul TMDB/AniList (metadata lain milik worker),
+  atau edit penuh termasuk `streamUrl` untuk judul `OWN`.
+- **Sinkronisasi** — riwayat `SyncJob` dan tombol "jalankan sekarang" untuk
+  `sync.catalog`, `sync.offers`, dan `maintenance.cleanup` (butuh Redis + `pnpm worker`).
+
+Keamanan: sesi berlaku 12 jam (`httpOnly`, `SameSite=Lax`, `Secure` di produksi), login
+dibatasi 10 percobaan / 15 menit per IP, seluruh panel `noindex`, dan `streamUrl` hanya menerima
+path relatif atau URL http(s). Detail ada di `DECISIONS.md` ASUMSI-054…058.
+
 E2E: `pnpm e2e` menjalankan Playwright terhadap build produksi. Di mesin dev dipakai Chrome
 sistem (`channel: "chrome"`); di CI pasang browser dengan
 `pnpm --filter @ongx/web exec playwright install --with-deps chromium`. Suite memakai
 `apps/web/.env.local` (DATABASE_URL) karena `globalSetup` membuat fixture `Source.OWN` sementara
-untuk menguji player dengan playlist HLS lokal di `apps/web/public/test/fixtures/hls/`; fixture
-dihapus lagi oleh `globalTeardown`. Jalankan `pnpm build` dulu agar file `public/` terdaftar di
-server produksi.
+untuk menguji player dengan playlist HLS lokal di `apps/web/public/test/fixtures/hls/`, plus akun
+admin sementara dan satu laporan terbuka; semuanya dihapus lagi oleh `globalTeardown`. Jalankan
+`pnpm build` dulu agar file `public/` terdaftar di server produksi.
 
 ## Struktur
 

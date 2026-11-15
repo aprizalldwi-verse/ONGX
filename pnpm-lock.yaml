@@ -47,6 +47,9 @@ importers:
       '@ongx/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      bcryptjs:
+        specifier: 3.0.3
+        version: 3.0.3
       bullmq:
         specifier: 6.7.6
         version: 6.7.6(ioredis@5.11.1)

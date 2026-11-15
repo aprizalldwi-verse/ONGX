@@ -1,4 +1,5 @@
 import { prisma } from "@ongx/db";
+import { hash } from "bcryptjs";
 
 /**
  * Playwright fixture data. The public catalog has no `Source.OWN` rows yet, so
@@ -8,6 +9,8 @@ import { prisma } from "@ongx/db";
  */
 export const E2E_TITLE_ID = "e2e-own-fixture";
 export const E2E_PROVIDER_URL = "https://provider.example/e2e-fixture";
+export const E2E_ADMIN = { username: "e2e-admin", password: "ongx-e2e-password" };
+export const E2E_ADMIN_REPORT_MESSAGE = "E2E admin fixture report";
 
 export default async function globalSetup(): Promise<void> {
   await prisma.title.upsert({
@@ -41,4 +44,29 @@ export default async function globalSetup(): Promise<void> {
       status: "LIVE",
     },
   });
+
+  // Deterministic admin credentials for the panel spec. The hash cost is lower
+  // than production on purpose: this account only exists for the test run.
+  const passwordHash = await hash(E2E_ADMIN.password, 10);
+  await prisma.adminUser.upsert({
+    where: { username: E2E_ADMIN.username },
+    create: { username: E2E_ADMIN.username, passwordHash },
+    update: { passwordHash },
+  });
+
+  const existingReport = await prisma.report.findFirst({
+    where: { message: E2E_ADMIN_REPORT_MESSAGE },
+    select: { id: true },
+  });
+
+  if (!existingReport) {
+    await prisma.report.create({
+      data: {
+        titleId: E2E_TITLE_ID,
+        reason: "metadata",
+        message: E2E_ADMIN_REPORT_MESSAGE,
+        status: "OPEN",
+      },
+    });
+  }
 }

@@ -12,6 +12,7 @@ const raw = {
   CRON_SECRET: process.env.CRON_SECRET,
   ADMIN_USER: process.env.ADMIN_USER,
   ADMIN_PASS_HASH: process.env.ADMIN_PASS_HASH,
+  ADMIN_SESSION_SECRET: process.env.ADMIN_SESSION_SECRET,
 } as const;
 
 const check = checkEnv(serverEnvSchema, raw);

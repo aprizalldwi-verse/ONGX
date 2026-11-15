@@ -332,3 +332,39 @@ memeriksa key itu bila `WORKER_HEALTH_REQUIRED=true`; heartbeat hilang menurunka
 `degraded` dengan HTTP 200, bukan 503. Alasan: web masih bisa melayani halaman dari data yang
 ada tanpa worker, jadi mematikan seluruh tier web hanya karena worker mati akan memperburuk
 dampak; `degraded` tetap memberi sinyal yang bisa di-alert.
+
+ASUMSI-054: Sesi admin memakai cookie stateless `ongx_admin` berisi
+`v1.<payload>.<HMAC-SHA256>` (username + expiry, TTL 12 jam, `httpOnly`, `SameSite=Lax`,
+`Secure` di produksi) yang ditandatangani dengan `ADMIN_SESSION_SECRET` (minimal 32 karakter)
+atau — bila kosong — `ADMIN_PASS_HASH`. Alasan: tidak menambah dependency atau store sesi,
+tetap valid lintas instance tanpa Redis, dan fallback ke hash membuat rotasi password otomatis
+membatalkan cookie lama. Operator yang ingin merotasi password tanpa memutus sesi bisa mengisi
+secret terpisah dan menggantinya sendiri kapan saja.
+
+ASUMSI-055: Login dibatasi fixed window Redis 10 percobaan / 15 menit per IP
+(`ongx:admin:login:<ip>`) dan fail-open bila Redis tidak tersedia, sama seperti limiter
+laporan/pencarian. Alasan: batas ini cukup longgar untuk salah ketik tetapi memutus password
+guessing; fail-open menjaga admin tetap bisa masuk saat Redis mati, dengan konsekuensi
+brute-force tidak dibatasi selama Redis down. Username yang tidak ada tetap membayar satu
+`bcrypt.compare` terhadap dummy hash agar timing tidak membocorkan keberadaan akun.
+
+ASUMSI-056: Admin hanya boleh mengubah `status` untuk judul TMDB/AniList karena field lain
+ditimpa `sync.catalog`; judul `OWN` boleh diubah penuh (judul, sinopsis, tahun, status) termasuk
+`streamUrl`. URL stream hanya menerima path relatif (bukan `//`) atau http(s), maksimum 2.048
+karakter, tanpa control character. Alasan: mencegah admin mengubah metadata yang akan hilang
+pada sync berikutnya, sekaligus menutup `javascript:`/protocol-relative URL yang bisa menjadi
+XSS saat dipakai player.
+
+ASUMSI-057: Tombol "jalankan sekarang" memakai `enqueueAdminJob` yang mengimpor `bullmq` secara
+dinamis dan memakai kontrak payload/retry yang sama dengan scheduler (`scheduleDefinitions`,
+`DEFAULT_JOB_OPTIONS`, queue `ongx-jobs` + prefix). Alasan: job manual identik dengan job
+terjadwal sehingga tidak ada jalur kode kedua, dan dynamic import menjaga `bullmq` hanya di
+route admin. Tanpa worker job tetap menunggu di antrean; tanpa Redis aksi menampilkan banner
+error dan tidak menulis apa pun.
+
+ASUMSI-058: Semua halaman admin `force-dynamic` dan `noindex` (metadata layout + `robots.ts`),
+dan `getAdminSession()` membaca cookie lebih dulu sebelum memeriksa secret. Alasan: status
+"panel terkonfigurasi atau belum" dan sesi bergantung pada env/cookie runtime, bukan build;
+tanpa `force-dynamic` halaman login sempat diprerender statis dengan status "belum
+dikonfigurasi". E2E menyuntikkan `ADMIN_SESSION_SECRET` lewat `webServer.env` dan membuat akun
+`e2e-admin` sementara agar suite tidak bergantung pada `.env.local` developer.

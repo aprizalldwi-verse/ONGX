@@ -36,6 +36,7 @@ export const serverEnvSchema = z.object({
   CRON_SECRET: optionalString,
   ADMIN_USER: z.string().default("admin"),
   ADMIN_PASS_HASH: optionalString,
+  ADMIN_SESSION_SECRET: optionalString,
 });
 
 export type PublicEnv = z.infer<typeof publicEnvSchema>;

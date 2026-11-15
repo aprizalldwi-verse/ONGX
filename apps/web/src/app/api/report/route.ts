@@ -1,16 +1,11 @@
 import { NextResponse } from "next/server";
 
+import { clientIpFromHeaders } from "@/lib/client-ip";
 import { prisma } from "@/lib/prisma";
 import { checkReportLimit } from "@/lib/report-rate-limit";
 import { reportSchema } from "@/lib/report-schema";
 
 export const dynamic = "force-dynamic";
-
-function clientIp(request: Request): string {
-  const forwarded = request.headers.get("x-forwarded-for");
-  const first = forwarded?.split(",")[0]?.trim();
-  return first && first.length > 0 ? first : (request.headers.get("x-real-ip") ?? "unknown");
-}
 
 export async function POST(request: Request) {
   const body: unknown = await request.json().catch(() => null);
@@ -20,7 +15,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid" }, { status: 400 });
   }
 
-  const limit = await checkReportLimit(clientIp(request));
+  const limit = await checkReportLimit(clientIpFromHeaders(request.headers));
   if (!limit.allowed) {
     return NextResponse.json(
       { error: "rate_limited" },
