@@ -12,7 +12,11 @@
   "meta": {
     "siteName": "ONGX",
     "tagline": "Watch without the fuss.",
-    "description": "A catalog of films, series, and anime with direct links to official providers. Fast, light, mobile-first."
+    "description": "A catalog of films, series, and anime with direct links to official providers. Fast, light, mobile-first.",
+    "titleFallback": "{title} — synopsis, official trailer, rating, and direct links to streaming providers on ONGX.",
+    "episodeFallback": "Episode {number} of {title}: synopsis, air date, and direct links to streaming providers on ONGX.",
+    "personFallback": "Profile of {name}: movies, series, and anime credits, only on ONGX.",
+    "watchFallback": "Watch {title} on ONGX: official trailer, episode list, and direct links to streaming providers."
   },
   "nav": {
     "home": "Home",

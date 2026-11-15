@@ -34,10 +34,6 @@ export async function generateMetadata({
     title: { default: title, template: `%s — ${siteName}` },
     description: t("description"),
     applicationName: siteName,
-    alternates: {
-      canonical: "/",
-      languages: { id: "/", en: "/en", "x-default": "/" },
-    },
     openGraph: {
       type: "website",
       siteName,

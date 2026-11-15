@@ -1,7 +1,9 @@
+import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
 import { CatalogListing } from "@/components/catalog-listing";
-import type { SearchParams } from "@/lib/titles/filters";
+import { clampDescription, pageMetadata } from "@/lib/seo";
+import { canonicalPagePath, type SearchParams } from "@/lib/titles/filters";
 
 export const revalidate = 600;
 
@@ -10,9 +12,18 @@ type Props = {
   searchParams: Promise<SearchParams>;
 };
 
-export async function generateMetadata() {
-  const t = await getTranslations("pages.film");
-  return { title: t("title"), description: t("body") };
+export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "pages.film" });
+  const { path, page } = canonicalPagePath("/film", await searchParams);
+
+  return pageMetadata({
+    title: t("title"),
+    description: clampDescription(t("body"), locale),
+    path,
+    locale,
+    noindex: page > 20,
+  });
 }
 
 export default async function Page({ params, searchParams }: Props) {

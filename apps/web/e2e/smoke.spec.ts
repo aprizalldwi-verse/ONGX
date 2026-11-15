@@ -300,3 +300,162 @@ test("player loads the local HLS fixture and opens a provider offer", async ({ p
   await expect(popup).toHaveURL("https://provider.example/e2e-fixture");
   await popup.close();
 });
+
+test("robots, manifest and RSS expose the crawler contract", async ({ request }) => {
+  const robots = await request.get("/robots.txt");
+  expect(robots.status()).toBe(200);
+
+  const robotsBody = await robots.text();
+  expect(robotsBody).toContain("User-Agent: *");
+  expect(robotsBody).toContain("Allow: /");
+  expect(robotsBody).toContain("Disallow: /admin");
+  expect(robotsBody).toContain("Disallow: /api");
+  expect(robotsBody).toMatch(/Sitemap: https?:\/\/[^\s]+\/sitemap\.xml/);
+
+  const manifest = await request.get("/manifest.webmanifest");
+  expect(manifest.status()).toBe(200);
+  expect(manifest.headers()["content-type"]).toContain("application/manifest+json");
+
+  const manifestBody = (await manifest.json()) as {
+    name: string;
+    start_url: string;
+    display: string;
+    icons: Array<{ src: string }>;
+  };
+  expect(manifestBody.name).toBe("ONGX");
+  expect(manifestBody.start_url).toBe("/");
+  expect(manifestBody.display).toBe("standalone");
+  expect(manifestBody.icons.length).toBeGreaterThan(0);
+
+  const rss = await request.get("/rss.xml");
+  expect(rss.status()).toBe(200);
+  expect(rss.headers()["content-type"]).toContain("application/rss+xml");
+
+  const rssBody = await rss.text();
+  expect(rssBody).toContain('<rss version="2.0"');
+  expect(rssBody).toContain("<language>id</language>");
+  expect(rssBody.match(/<item>/g)?.length ?? 0).toBeGreaterThan(0);
+  expect(rssBody).toMatch(/<link>https?:\/\/[^\s<]+\/(film|series|anime)\//);
+});
+
+test("sitemap index and chunk URLs resolve, and sampled URLs return 200", async ({ request }) => {
+  // 50 detail/episode/person pages is slow on a cold Next server; a single
+  // test gets a wider budget instead of lowering coverage.
+  test.setTimeout(180_000);
+
+  const index = await request.get("/sitemap.xml");
+  expect(index.status()).toBe(200);
+  expect(index.headers()["content-type"]).toContain("application/xml");
+
+  const indexBody = await index.text();
+  expect(indexBody).toContain("<sitemapindex");
+  const chunkUrl = indexBody.match(/<loc>([^<]+)<\/loc>/)?.[1];
+  expect(chunkUrl).toBeTruthy();
+  if (!chunkUrl) return;
+
+  const chunk = await request.get(chunkUrl);
+  expect(chunk.status()).toBe(200);
+  expect(chunk.headers()["content-type"]).toContain("application/xml");
+
+  const chunkBody = await chunk.text();
+  expect(chunkBody).toContain("<urlset");
+  expect(chunkBody).toContain('hreflang="x-default"');
+
+  const urls = Array.from(chunkBody.matchAll(/<loc>([^<]+)<\/loc>/g), (match) => match[1]).filter(
+    (value): value is string => value !== undefined && value.length > 0,
+  );
+  expect(urls.length).toBeGreaterThan(50);
+  expect(new Set(urls).size).toBe(urls.length);
+
+  // Deterministic spread across the chunk: static pages, genres, titles,
+  // episodes and people are all mixed in by the data layer.
+  const step = Math.max(1, Math.floor(urls.length / 50));
+  const sample = urls.filter((_, position) => position % step === 0).slice(0, 50);
+
+  const failures: string[] = [];
+  for (let offset = 0; offset < sample.length; offset += 10) {
+    const batch = sample.slice(offset, offset + 10);
+    const responses = await Promise.all(batch.map((url) => request.get(url)));
+    responses.forEach((response, position) => {
+      if (response.status() !== 200) {
+        failures.push(`${response.status()} ${batch[position] ?? "unknown"}`);
+      }
+    });
+  }
+
+  expect(failures).toEqual([]);
+});
+
+test("detail pages expose canonical, hreflang, JSON-LD and an OG image", async ({
+  page,
+  request,
+}) => {
+  await page.goto("/film/proyek-hail-mary-2026");
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+
+  await expect(page).toHaveTitle(/— ONGX$| - ONGX$/);
+
+  const canonical = page.locator('link[rel="canonical"]');
+  await expect(canonical).toHaveAttribute("href", /\/film\/proyek-hail-mary-2026$/);
+
+  const description = await page.locator('meta[name="description"]').getAttribute("content");
+  expect(description?.length ?? 0).toBeGreaterThanOrEqual(150);
+  expect(description?.length ?? 0).toBeLessThanOrEqual(160);
+
+  for (const [lang, suffix] of [
+    ["id", "/film/proyek-hail-mary-2026"],
+    ["en", "/en/film/proyek-hail-mary-2026"],
+    ["x-default", "/film/proyek-hail-mary-2026"],
+  ] as const) {
+    await expect(page.locator(`link[rel="alternate"][hreflang="${lang}"]`)).toHaveAttribute(
+      "href",
+      new RegExp(`${suffix}$`),
+    );
+  }
+
+  const jsonLd = await page
+    .locator('script[type="application/ld+json"]')
+    .evaluateAll((nodes) => nodes.map((node) => node.textContent ?? ""));
+  const types = jsonLd.flatMap((payload) =>
+    Array.from(payload.matchAll(/"@type":"([^"]+)"/g), (match) => match[1]),
+  );
+  expect(types).toContain("Movie");
+  expect(types).toContain("BreadcrumbList");
+
+  const episode = await request.get("/anime/shingeki-no-kyojin-2013/s/1/e/1");
+  expect(episode.status()).toBe(200);
+  const episodeBody = await episode.text();
+  expect(episodeBody).toContain('"@type":"TVEpisode"');
+  expect(episodeBody).toContain('"@type":"VideoObject"');
+
+  const ogUrl = await page.locator('meta[property="og:image"]').getAttribute("content");
+  expect(ogUrl).toBeTruthy();
+  if (!ogUrl) return;
+
+  const og = await request.get(ogUrl);
+  expect(og.status()).toBe(200);
+  expect(og.headers()["content-type"]).toContain("image/png");
+  expect((await og.body()).byteLength).toBeGreaterThan(10_000);
+});
+
+test("search results stay out of the index and unknown slugs 404", async ({ page, request }) => {
+  for (const path of [
+    "/film/slug-tidak-ada",
+    "/series/slug-tidak-ada",
+    "/anime/slug-tidak-ada",
+    "/genre/slug-tidak-ada",
+    "/orang/slug-tidak-ada",
+    "/watch/slug-tidak-ada",
+    "/series/one-piece-1999/s/9/e/99",
+    "/en/film/slug-tidak-ada",
+  ]) {
+    const response = await request.get(path);
+    expect(response.status(), path).toBe(404);
+  }
+
+  await page.goto("/film");
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+
+  await page.goto("/cari?q=one");
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
+});

@@ -128,7 +128,10 @@ export interface EpisodeView {
   name: string;
   synopsis?: string | undefined;
   airDateLabel?: string | undefined;
+  /** ISO date kept for structured data; the label is already localized. */
+  airDate?: string | undefined;
   durationLabel?: string | undefined;
+  durationSec?: number | undefined;
   stillUrl?: string | undefined;
   streamUrl?: string | undefined;
   href: string;
@@ -332,7 +335,13 @@ export function toEpisodeView(
 ): EpisodeView {
   const synopsis = clean(row.synopsis);
   const airDateLabel = formatAirDate(row.airDate, locale);
+  const airDate =
+    row.airDate instanceof Date && !Number.isNaN(row.airDate.getTime())
+      ? row.airDate.toISOString()
+      : undefined;
   const durationLabel = formatDuration(row.durationSec, locale);
+  const durationSec =
+    typeof row.durationSec === "number" && row.durationSec > 0 ? row.durationSec : undefined;
   const stillUrl = imageUrl(row.stillPath, "w342");
   const streamUrl = clean(row.streamUrl);
 
@@ -343,7 +352,9 @@ export function toEpisodeView(
     name: clean(row.name) ?? `Episode ${row.number}`,
     ...(synopsis !== undefined ? { synopsis } : {}),
     ...(airDateLabel !== undefined ? { airDateLabel } : {}),
+    ...(airDate !== undefined ? { airDate } : {}),
     ...(durationLabel !== undefined ? { durationLabel } : {}),
+    ...(durationSec !== undefined ? { durationSec } : {}),
     ...(stillUrl !== undefined ? { stillUrl } : {}),
     ...(streamUrl !== undefined ? { streamUrl } : {}),
     href: episodePath(title.source, title.slug, row.season, row.number),

@@ -1,5 +1,5 @@
 import { Button } from "@ongx/ui";
-import { ArrowLeft, ChevronLeft, ChevronRight, Play, Star } from "lucide-react";
+import { ChevronLeft, ChevronRight, Play, Star } from "lucide-react";
 import Image from "next/image";
 import { getTranslations } from "next-intl/server";
 
@@ -10,16 +10,19 @@ import { TrailerDialog } from "@/components/trailer-dialog";
 import { Link } from "@/i18n/navigation";
 import type { EpisodeView, TitleDetailView } from "@/lib/titles/view";
 
+import { Breadcrumb } from "./breadcrumb";
+
 export interface EpisodeDetailProps {
   title: TitleDetailView;
   episode: EpisodeView;
 }
 
 export async function EpisodeDetail({ title, episode }: EpisodeDetailProps) {
-  const [detail, episodesT, watchT] = await Promise.all([
+  const [detail, episodesT, watchT, nav] = await Promise.all([
     getTranslations("detail"),
     getTranslations("episodes"),
     getTranslations("watch"),
+    getTranslations("nav"),
   ]);
 
   const all = title.seasons.flatMap((season) => season.episodes);
@@ -27,18 +30,29 @@ export async function EpisodeDetail({ title, episode }: EpisodeDetailProps) {
   const previous = index > 0 ? all[index - 1] : undefined;
   const next = index >= 0 && index < all.length - 1 ? all[index + 1] : undefined;
   const image = episode.stillUrl ?? title.backdropUrl;
+  const catalogLabel =
+    title.source === "ANILIST"
+      ? nav("anime")
+      : title.kind === "MOVIE"
+        ? nav("film")
+        : nav("series");
+  const catalogHref =
+    title.source === "ANILIST" ? "/anime" : title.kind === "MOVIE" ? "/film" : "/series";
 
   return (
     <article className="mx-auto w-full max-w-6xl px-4 py-6">
-      <Link
-        href={title.href}
-        className="inline-flex items-center gap-1 text-xs font-medium text-[var(--fg-dim)] transition-colors hover:text-[var(--accent)]"
-      >
-        <ArrowLeft aria-hidden="true" className="size-3.5" />
-        {title.title}
-      </Link>
+      <Breadcrumb
+        items={[
+          { name: nav("home"), href: "/" },
+          { name: catalogLabel, href: catalogHref },
+          { name: title.title, href: title.href },
+          {
+            name: `${episodesT("episode", { number: episode.number })} · ${episode.name}`,
+          },
+        ]}
+      />
 
-      <header className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+      <header className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">
           {episodesT("episode", { number: episode.number })}
           {" · "}

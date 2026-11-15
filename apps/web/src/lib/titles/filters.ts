@@ -85,3 +85,12 @@ export function browseQuery(
     page: merged.page > 1 ? merged.page : undefined,
   };
 }
+
+/** Canonical path for a listing page; only pagination belongs in the URL. */
+export function canonicalPagePath(
+  basePath: string,
+  searchParams: SearchParams,
+): { path: string; page: number } {
+  const { page } = parseBrowseFilters(searchParams);
+  return { path: page > 1 ? `${basePath}?page=${page}` : basePath, page };
+}

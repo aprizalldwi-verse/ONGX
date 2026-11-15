@@ -1,5 +1,6 @@
 import { Button } from "@ongx/ui";
 import { ArrowLeft, Play } from "lucide-react";
+import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
@@ -13,6 +14,8 @@ import { TrailerDialog } from "@/components/trailer-dialog";
 import { WatchPlayer } from "@/components/watch-player";
 import { Link } from "@/i18n/navigation";
 import { adSlotId } from "@/lib/ads";
+import { redirectLegacyPath } from "@/lib/redirects";
+import { clampDescription, pageMetadata } from "@/lib/seo";
 import { getTitleById } from "@/lib/titles/queries";
 import type { EpisodeView } from "@/lib/titles/view";
 
@@ -51,15 +54,24 @@ function pickEpisode(
   return episodes[0];
 }
 
-export async function generateMetadata({ params }: Props) {
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale, id } = await params;
   const title = await getTitleById(id, locale);
   if (!title) return {};
 
-  return {
+  const t = await getTranslations({ locale, namespace: "meta" });
+
+  return pageMetadata({
     title: title.title,
-    description: title.synopsis?.slice(0, 160) ?? undefined,
-  };
+    description: clampDescription(
+      title.synopsis,
+      locale,
+      t("watchFallback", { title: title.title }),
+    ),
+    path: `/watch/${id}`,
+    locale,
+    noindex: true,
+  });
 }
 
 export default async function Page({ params, searchParams }: Props) {
@@ -72,7 +84,10 @@ export default async function Page({ params, searchParams }: Props) {
     getTranslations("watch"),
   ]);
 
-  if (!title) notFound();
+  if (!title) {
+    await redirectLegacyPath(`/watch/${id}`, locale);
+    notFound();
+  }
 
   const episodes = title.seasons.flatMap((season) => season.episodes);
   const activeEpisode = pickEpisode(episodes, positiveInt(query.s), positiveInt(query.e));

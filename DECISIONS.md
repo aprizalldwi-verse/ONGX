@@ -259,3 +259,38 @@ manifest high-only tidak di-cap karena akan menghilangkan semua pilihan playable
 pesan "belum tersedia" dan kualitas tetap terkunci. Alasan: tidak ada akun pengguna di v1 dan
 kebijakan data tidak mengizinkan streaming pihak ketiga; unlock tidak boleh bergantung pada timer
 yang bisa dimanipulasi.
+
+ASUMSI-044: Halaman detail, episode, genre, orang, dan watch sengaja tidak punya `loading.tsx`.
+Boundary loading di atas sebuah page membuat Next mengirim shell HTTP 200 (beserta UI loading)
+sebelum `notFound()` selesai, sehingga slug asing berstatus 200. Solusinya listing dipindah ke
+route group `film/(list)`, `series/(list)`, `anime/(list)` yang mempertahankan `loading.tsx`
+sendiri, sementara halaman lain dirender tanpa streaming boundary dan mengembalikan 404 asli.
+Alasan: status HTTP yang benar adalah syarat SEO dan tidak bisa ditambal dengan metadata
+`noindex`; route group menjaga skeleton listing tanpa mengorbankan 404.
+
+ASUMSI-045: Sitemap memakai satu index `/sitemap.xml` dan chunk `/sitemap/{n}.xml` (bukan
+`sitemap-{n}.xml`) dengan maksimum 45.000 URL per chunk, di bawah batas 50.000. Sumber data
+dibaca terpaginasi per jenis (statis, genre, judul, episode, orang) dan hanya baris `LIVE`,
+sehingga chunk besar tidak memuat seluruh katalog ke memori. `lastmod` diambil dari `updatedAt`
+judul/episode; halaman statis tidak diberi `lastmod` karena tidak ada sumber kebenaran waktu.
+Alasan: bentuk URL chunk tetap valid untuk protokol sitemap, mudah di-cache, dan konsisten
+dengan route handler App Router tanpa generateSitemaps.
+
+ASUMSI-046: Tabel `Redirect` dihormati lewat `permanentRedirect` (status 301/308) atau
+`redirect` (302/307) yang dipanggil setelah lookup judul/episode/genre/orang/watch meleset.
+Next 15.5.29 hanya menyediakan edge middleware, sehingga Prisma tidak bisa dipakai di middleware
+dan pengecekan dilakukan di RSC. `permanentRedirect` mengirim **308**, bukan 301; keduanya
+diperlakukan permanen oleh crawler, dan 308 mempertahankan metode HTTP. Alasan: tidak menambah
+query di jalur normal, dan tidak memaksa runtime Node kustom hanya demi kode status 301.
+
+ASUMSI-047: Deskripsi metadata dinormalisasi ke 150–160 karakter oleh `clampDescription`.
+Sinopsis panjang dipotong di batas kata dengan elipsis (elipsis dihitung), sedangkan sinopsis
+pendek/kosong diperpanjang dengan kalimat fallback per locale dari `messages/*.json`. Alasan:
+batas panjang yang konsisten mencegah Google memotong snippet secara acak, dan fallback i18n
+menjaga halaman tanpa sinopsis tetap punya deskripsi bermakna.
+
+ASUMSI-048: Poster untuk OG image diambil dengan `AbortSignal.timeout(2_500)` lalu di-inline
+sebagai data URI; kegagalan/timeout/ukuran >4 MB jatuh ke varian wordmark tanpa poster. Route OG
+tidak boleh menggantung karena host `image.tmdb.org` dan `s4.anilist.co` bisa lambat atau
+diblokir. Alasan: OG image harus selalu 200 dalam batas waktu crawler, dan tampilan wordmark
+tetap layak dibagikan.

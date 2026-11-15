@@ -218,7 +218,49 @@ Catatan Phase 7:
 
 ## Phase 8 — SEO
 
-- [ ] Perbaiki status HTTP 404 (ASUMSI-009)
+- [x] Perbaiki status HTTP 404 (ASUMSI-009): `loading.tsx` hanya membungkus listing;
+      detail/episode/genre/orang/watch tanpa boundary sehingga `notFound()` mengirim 404 asli
+- [x] `src/lib/seo.ts`: `siteUrl`/`absoluteUrl`/`localizedPath`, canonical absolut,
+      `hreflang` id/en/x-default, `clampDescription` 150–160 karakter, `pageMetadata`
+- [x] `generateMetadata` per halaman dengan format `<Judul> — ONGX`; deskripsi 150–160
+      karakter (fallback i18n saat sinopsis kosong/pendek)
+- [x] JSON-LD `WebSite` + `SearchAction` (beranda), `Movie`/`TVSeries` + `AggregateRating` +
+      `Person` (detail), `TVEpisode` + `TVSeason`/`TVSeries` + `VideoObject` (episode),
+      `BreadcrumbList` (detail + episode), `Person` (profil orang)
+- [x] Breadcrumb terlihat di detail dan episode, memakai label/urutan yang sama dengan JSON-LD
+- [x] `opengraph-image.tsx` dinamis 1200×630 (beranda + detail film/series/anime); poster
+      di-inline dengan timeout 2,5 detik dan fallback wordmark
+- [x] Sitemap index + chunk `/sitemap/[n].xml` (maks 45.000 URL/chunk, `lastmod` dari
+      `updatedAt`, hanya `status = LIVE`, hreflang per URL)
+- [x] `robots.txt` (allow all, disallow `/admin` + `/api`, `Host`, `Sitemap`),
+      `manifest.webmanifest`, `rss.xml` (50 judul terbaru), ikon SVG
+- [x] Tabel `Redirect` dihormati sebagai 308 permanen / 302 sementara setelah slug meleset
+      (ASUMSI-046)
+- [x] `noindex` untuk hasil pencarian, `?page > 20`, `/watch`, dan halaman device-local
+- [x] Gate: lint, typecheck, test (207 unit), build, format:check hijau; e2e 16/16
+- [ ] Rich Results Test — manual, butuh URL publik (lihat catatan)
+
+Catatan Phase 8:
+
+- Akar masalah 404: setiap `loading.tsx` di atas halaman mengirim shell HTTP 200 lebih dulu,
+  lalu `notFound()` hanya mengganti UI. Karena itu listing pindah ke route group
+  `film/(list)`, `series/(list)`, `anime/(list)` yang punya `loading.tsx` sendiri, sedangkan
+  detail/episode/genre/orang/watch tidak punya boundary. Halaman yang dikenal tetap 200,
+  slug asing (termasuk varian `/en`) sekarang 404.
+- Rich Results Test tidak bisa dijalankan lokal. Verifikasi otomatis menegaskan tipe JSON-LD
+  yang dirender (`Movie`, `TVSeries`, `TVEpisode`, `VideoObject`, `BreadcrumbList`) dan e2e
+  memeriksa canonical/hreflang/deskripsi/OG; validasi Google tetap langkah manual setelah
+  deploy dengan `NEXT_PUBLIC_SITE_URL` produksi.
+- `NEXT_PUBLIC_SITE_URL` di `.env.local` masih `http://localhost:3000`, jadi canonical,
+  sitemap, `robots.txt`, dan RSS memakai origin lokal saat pengembangan. Produksi wajib
+  mengisi origin asli atau semua URL absolut akan menunjuk localhost.
+- `permanentRedirect` Next mengirim 308, bukan 301. Untuk crawler keduanya permanen; 308
+  dipilih karena mempertahankan metode HTTP (ASUMSI-046). Redirect hanya dicek setelah
+  lookup normal meleset, jadi jalur panas tidak menambah query.
+- Sitemap saat ini 1 chunk / 5.777 URL. Chunk memakai query terpaginasi per sumber
+  (statis → genre → judul → episode → orang) sehingga katalog besar tidak dimuat sekaligus.
+- E2E sitemap mengambil 50 URL sampel dari chunk dan memastikan semuanya 200, plus index,
+  robots, manifest, RSS, OG image, dan 404 slug asing.
 
 ## Phase 9 — Worker
 

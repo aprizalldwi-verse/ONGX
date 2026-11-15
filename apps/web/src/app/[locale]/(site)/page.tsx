@@ -1,4 +1,5 @@
 import { Clapperboard } from "lucide-react";
+import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Fragment, Suspense } from "react";
 
@@ -6,13 +7,28 @@ import { AdSlot } from "@/components/ad-slot";
 import { ContinueWatching } from "@/components/continue-watching";
 import { EmptyState } from "@/components/empty-state";
 import { Hero } from "@/components/hero";
+import { JsonLd } from "@/components/json-ld";
 import { TitleRail, TitleRailSkeleton } from "@/components/title-rail";
 import { adSlotId, inlineSlotNumber } from "@/lib/ads";
+import { websiteSchema } from "@/lib/schema";
+import { absoluteUrl, clampDescription, localizedPath, pageMetadata } from "@/lib/seo";
 import { getHomeHero, getHomeRail, type HomeRailKey } from "@/lib/titles/queries";
 
 export const revalidate = 60;
 
 type Props = { params: Promise<{ locale: string }> };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "meta" });
+
+  return pageMetadata({
+    title: t("tagline"),
+    description: clampDescription(t("description"), locale),
+    path: "/",
+    locale,
+  });
+}
 
 const RAIL_HREF: Record<HomeRailKey, string> = {
   trending: "/trending",
@@ -53,6 +69,13 @@ export default async function HomePage({ params }: Props) {
 
   return (
     <div className="pb-10">
+      <JsonLd
+        data={websiteSchema({
+          siteUrl: absoluteUrl("/"),
+          searchUrl: absoluteUrl(localizedPath("/cari", locale)),
+          locale,
+        })}
+      />
       {hero ? <Hero item={hero} /> : null}
 
       <div className="mx-auto w-full max-w-6xl px-4">

@@ -12,7 +12,11 @@
   "meta": {
     "siteName": "ONGX",
     "tagline": "Nonton tanpa ribet.",
-    "description": "Katalog film, series, dan anime dengan tautan langsung ke provider resmi. Cepat, ringan, mobile-first."
+    "description": "Katalog film, series, dan anime dengan tautan langsung ke provider resmi. Cepat, ringan, mobile-first.",
+    "titleFallback": "{title} — sinopsis, trailer resmi, rating, dan tautan resmi ke provider streaming di ONGX.",
+    "episodeFallback": "Episode {number} dari {title}: sinopsis, jadwal tayang, dan tautan resmi ke provider streaming di ONGX.",
+    "personFallback": "Profil {name}: daftar film, series, dan anime yang dibintangi atau digarap, hanya di ONGX.",
+    "watchFallback": "Tonton {title} di ONGX: trailer resmi, daftar episode, dan tautan resmi ke provider streaming."
   },
   "nav": {
     "home": "Beranda",

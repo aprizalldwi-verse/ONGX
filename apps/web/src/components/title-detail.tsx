@@ -1,5 +1,5 @@
 import { Button } from "@ongx/ui";
-import { ArrowLeft, Play, Star } from "lucide-react";
+import { Play, Star } from "lucide-react";
 import Image from "next/image";
 import { getTranslations } from "next-intl/server";
 
@@ -7,6 +7,7 @@ import { Link } from "@/i18n/navigation";
 import { toLibraryTitle } from "@/lib/library";
 import type { TitleCardView, TitleDetailView } from "@/lib/titles/view";
 
+import { Breadcrumb } from "./breadcrumb";
 import { CastRail } from "./cast-rail";
 import { EpisodeList } from "./episode-list";
 import { LibraryActions } from "./library-actions";
@@ -27,7 +28,13 @@ function catalogHref(title: TitleDetailView): string {
 }
 
 export async function TitleDetail({ title, related }: TitleDetailProps) {
-  const t = await getTranslations("detail");
+  const [t, nav] = await Promise.all([getTranslations("detail"), getTranslations("nav")]);
+  const catalogLabel =
+    title.source === "ANILIST"
+      ? nav("anime")
+      : title.kind === "MOVIE"
+        ? nav("film")
+        : nav("series");
 
   return (
     <article>
@@ -45,13 +52,13 @@ export async function TitleDetail({ title, related }: TitleDetailProps) {
         <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg)] via-[var(--bg)]/80 to-[var(--bg)]/30" />
 
         <div className="relative mx-auto w-full max-w-6xl px-4 py-8 sm:py-10">
-          <Link
-            href={catalogHref(title)}
-            className="inline-flex items-center gap-1 text-xs font-medium text-[var(--fg-dim)] transition-colors hover:text-[var(--accent)]"
-          >
-            <ArrowLeft aria-hidden="true" className="size-3.5" />
-            {t("backToCatalog")}
-          </Link>
+          <Breadcrumb
+            items={[
+              { name: nav("home"), href: "/" },
+              { name: catalogLabel, href: catalogHref(title) },
+              { name: title.title },
+            ]}
+          />
 
           <div className="mt-4 flex flex-col gap-6 sm:flex-row">
             {title.posterUrl ? (
