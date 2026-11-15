@@ -1,5 +1,70 @@
 import { expect, test } from "@playwright/test";
 
+test("ads.txt exposes pending seller records", async ({ request }) => {
+  const response = await request.get("/ads.txt");
+  expect(response.status()).toBe(200);
+  expect(await response.text()).toContain("# TODO");
+});
+
+test("disabled ad slots remain hidden without ad layout shifts", async ({ page }) => {
+  await page.addInitScript(() => {
+    interface ShiftRecord {
+      value: number;
+      fromAdSlot: boolean;
+    }
+
+    const shifts: ShiftRecord[] = [];
+    Object.assign(window, { adTestShifts: shifts });
+
+    const isInsideAdSlot = (node: Node | null): boolean =>
+      node instanceof Element &&
+      (node.matches("[data-slot-id]") || node.closest("[data-slot-id]") !== null);
+
+    new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        const shift = entry as PerformanceEntry & {
+          value: number;
+          hadRecentInput: boolean;
+          sources?: Array<{ node: Node | null }>;
+        };
+        if (shift.hadRecentInput) continue;
+        shifts.push({
+          value: shift.value,
+          fromAdSlot: (shift.sources ?? []).some((source) => isInsideAdSlot(source.node)),
+        });
+      }
+    }).observe({ type: "layout-shift", buffered: true });
+  });
+
+  await page.goto("/film");
+
+  const slots = page.locator("[data-slot-id]");
+  expect(await slots.count()).toBeGreaterThan(0);
+  expect(
+    await slots.evaluateAll((elements) =>
+      elements.every((element) => element.getBoundingClientRect().height === 0),
+    ),
+  ).toBe(true);
+
+  await page.waitForLoadState("networkidle");
+
+  const result = await page.evaluate(() => {
+    const values = (
+      window as unknown as { adTestShifts: Array<{ value: number; fromAdSlot: boolean }> }
+    ).adTestShifts;
+    return {
+      total: values.reduce((sum, value) => sum + value.value, 0),
+      fromAdSlot: values.filter((value) => value.fromAdSlot).length,
+    };
+  });
+
+  // No layout shift may originate from an ad slot. A tiny global CLS from font
+  // swap is unrelated and stays well inside the "good" 0.1 threshold.
+  expect(result.fromAdSlot).toBe(0);
+  expect(result.total).toBeLessThan(0.01);
+  await expect(page.locator("#ongx-ad-adapter")).toHaveCount(0);
+});
+
 // Upstream image hosts are not always reachable from CI/sandbox machines. If
 // `/_next/image` requests are allowed to hang they exhaust Chrome's per-host
 // connection pool, which also stalls client-side (RSC) navigation. Aborting

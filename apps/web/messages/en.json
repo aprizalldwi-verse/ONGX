@@ -1,4 +1,14 @@
 {
+  "ads": {
+    "label": "Advertisement",
+    "devSlot": "Zone {zone} · {height}px",
+    "noscript": "Advertising space",
+    "adblockTitle": "Disable adblock to support ONGX",
+    "adblockBody": "Advertising helps keep the catalog free.",
+    "adblockDismiss": "Dismiss advertising notice",
+    "rewardedUnlock": "Watch an ad → unlock 1080p",
+    "rewardedUnavailable": "No ad is available. Try again later."
+  },
   "meta": {
     "siteName": "ONGX",
     "tagline": "Watch without the fuss.",

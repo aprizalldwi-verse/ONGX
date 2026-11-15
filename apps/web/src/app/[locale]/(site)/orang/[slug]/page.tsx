@@ -67,7 +67,7 @@ export default async function Page({ params }: Props) {
         <section className="mt-8">
           <h2 className="font-display text-lg font-bold tracking-tight">{t("castRole")}</h2>
           <div className="mt-3">
-            <PosterGrid items={cast} />
+            <PosterGrid items={cast} slotScope="cast" />
           </div>
         </section>
       ) : null}
@@ -76,7 +76,7 @@ export default async function Page({ params }: Props) {
         <section className="mt-8">
           <h2 className="font-display text-lg font-bold tracking-tight">{t("crewRole")}</h2>
           <div className="mt-3">
-            <PosterGrid items={crew} />
+            <PosterGrid items={crew} slotScope="crew" />
           </div>
         </section>
       ) : null}

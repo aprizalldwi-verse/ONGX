@@ -226,3 +226,36 @@ merender skeleton saat `entries === null` (server + pass klien pertama) lalu men
 `localStorage` di `useEffect`; tanpa pola ini HTML server dan render klien pertama berbeda dan
 React melaporkan hydration mismatch. Tombol simpan/playlist di halaman detail juga membaca state
 setelah mount dengan alasan yang sama.
+
+ASUMSI-040: Zona iklan dibaca langsung dari `process.env.NEXT_PUBLIC_MT_*` di
+`src/config/ads.ts` (bukan lewat `env.public`) supaya Zod tidak ikut ke bundle klien. Master
+switch `NEXT_PUBLIC_ADS_ENABLED` mematikan seluruh mesin; setiap zona juga butuh zone id sendiri.
+Saat disabled, slot production dirender sebagai `div hidden` tanpa tinggi (nol layout shift),
+sedangkan build dev menampilkan kotak garis putus-putus + label zona untuk verifikasi visual.
+Tinggi slot aktif dikunci 250/300/100 px agar creative tidak menggeser halaman. Alasan: satu
+sumber konfigurasi, tidak ada ID hardcoded, dan gate CLS bisa diuji tanpa akun Monetag.
+
+ASUMSI-041: Integrasi Monetag dibatasi pada adapter akun `window.ongxAds`
+(`AdNetworkAdapter`), dimuat dari `NEXT_PUBLIC_MT_ADAPTER_URL`. Snippet Monetag berbeda per
+format/akun dan SDK rewarded bukan loader web universal, jadi repo tidak menebak URL SDK atau
+memanggil `show_<zone>` secara langsung. Adapter `show()` wajib resolve `completed` hanya
+setelah rewarded benar-benar selesai; timer, event `load`, atau tombol tutup tidak pernah
+membuka 1080p. `mount()` mengisi slot native dan boleh mengembalikan cleanup. Tanpa persetujuan
+jaringan, build tetap menampilkan slot kosong dan `/ads.txt` masih `# TODO`; klaim live fill
+tidak dibuat.
+
+ASUMSI-042: Interstitial dipicu setelah internal referrer + scroll melewati satu viewport,
+sekali per sesi (`sessionStorage.ongx_int`). Karena navigasi klien App Router tidak mengubah
+`document.referrer`, provider mencatat navigasi internal di `ongx:internal-nav`; landing
+langsung dari eksternal tidak memenuhi syarat. Overlay mem-pause dan mute video lewat event
+`ongx:ad-pause`, lalu mengembalikan posisi/volume lewat `ongx:ad-resume`. Popunder baru dipasang
+setelah `pointerdown` pertama. Alasan: tidak mengganggu autoplay, tidak muncul dua kali, dan
+tidak ada iklan di dalam iframe player.
+
+ASUMSI-043: Rewarded 1080p adalah preferensi UI device-local (30 menit, `sessionStorage`), bukan
+otorisasi server. Gate hanya berlaku pada manifest HLS.js yang punya level di bawah 1080p;
+manifest high-only tidak di-cap karena akan menghilangkan semua pilihan playable, dan native HLS
+(iOS) memang tidak punya pemilih kualitas. Saat adapter gagal/tidak tersedia, tombol menampilkan
+pesan "belum tersedia" dan kualitas tetap terkunci. Alasan: tidak ada akun pengguna di v1 dan
+kebijakan data tidak mengizinkan streaming pihak ketiga; unlock tidak boleh bergantung pada timer
+yang bisa dimanipulasi.

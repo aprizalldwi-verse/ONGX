@@ -1,4 +1,14 @@
 {
+  "ads": {
+    "label": "Iklan",
+    "devSlot": "Zona {zone} · {height}px",
+    "noscript": "Ruang iklan",
+    "adblockTitle": "Matikan adblock untuk bantu ONGX",
+    "adblockBody": "Iklan membantu menjaga katalog tetap gratis.",
+    "adblockDismiss": "Tutup pemberitahuan iklan",
+    "rewardedUnlock": "Tonton iklan → buka 1080p",
+    "rewardedUnavailable": "Iklan belum tersedia. Coba lagi nanti."
+  },
   "meta": {
     "siteName": "ONGX",
     "tagline": "Nonton tanpa ribet.",

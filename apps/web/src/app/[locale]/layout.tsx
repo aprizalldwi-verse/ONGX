@@ -4,6 +4,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 
+import { AdProvider } from "@/components/ad-provider";
 import ThemeScript from "@/components/theme-script";
 import { routing } from "@/i18n/routing";
 import { publicEnv } from "@/lib/env.public";
@@ -77,7 +78,10 @@ export default async function LocaleLayout({
         <a href="#main" className="skip-link">
           {t("skipToContent")}
         </a>
-        <NextIntlClientProvider>{children}</NextIntlClientProvider>
+        <NextIntlClientProvider>
+          {children}
+          <AdProvider />
+        </NextIntlClientProvider>
       </body>
     </html>
   );

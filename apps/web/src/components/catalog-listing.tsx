@@ -84,7 +84,7 @@ export async function CatalogListing({
 
       <div className="mt-3">
         {page.items.length > 0 ? (
-          <PosterGrid items={page.items} />
+          <PosterGrid items={page.items} slotScope="catalog" />
         ) : (
           <EmptyState
             icon={Clapperboard}

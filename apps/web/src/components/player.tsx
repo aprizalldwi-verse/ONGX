@@ -17,6 +17,14 @@ import {
 import { useTranslations } from "next-intl";
 import { useEffect, useReducer, useRef, useState, type KeyboardEvent } from "react";
 
+import { AD_ZONES } from "@/config/ads";
+import {
+  isRewardedHeight,
+  readRewardedUnlock,
+  writeRewardedUnlock,
+  rewardedRemainingMs,
+} from "@/lib/ads";
+import { triggerAdZone } from "@/lib/ads-client";
 import {
   clampPosition,
   formatClock,
@@ -50,6 +58,7 @@ interface SubtitleOption {
 
 export function Player({ src, title, poster, storageKey, onProgress }: PlayerProps) {
   const t = useTranslations("player");
+  const tAds = useTranslations("ads");
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const hlsRef = useRef<HlsJs | null>(null);
@@ -65,10 +74,99 @@ export function Player({ src, title, poster, storageKey, onProgress }: PlayerPro
   const [attempt, setAttempt] = useState(0);
   const [resumedFrom, setResumedFrom] = useState<number | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
+  const [rewardedUnlocked, setRewardedUnlocked] = useState(false);
+  const [rewardedPending, setRewardedPending] = useState(false);
+  const [rewardedFailed, setRewardedFailed] = useState(false);
+
+  // A high-only manifest is left alone: capping it would leave no playable level.
+  const rewardedGateActive =
+    AD_ZONES.rewarded.enabled &&
+    !rewardedUnlocked &&
+    levels.some((level) => !isRewardedHeight(level.height));
+  const hasRewardedLevel = levels.some((level) => isRewardedHeight(level.height));
+
+  useEffect(() => {
+    if (!AD_ZONES.rewarded.enabled) return;
+    const hls = hlsRef.current;
+    if (!hls || levels.length === 0) return;
+    const allowed = levels.filter((level) => !isRewardedHeight(level.height));
+    // A high-only manifest cannot be capped safely; do not gate it.
+    if (allowed.length === 0) return;
+    const cap = Math.max(...allowed.map((level) => level.index));
+    hls.autoLevelCapping = rewardedUnlocked ? -1 : cap;
+    if (!rewardedUnlocked && hls.currentLevel > cap) changeLevel(-1);
+  }, [levels, rewardedUnlocked]);
+
+  useEffect(() => {
+    if (!rewardedUnlocked) return;
+    let remaining = 0;
+    try {
+      remaining = rewardedRemainingMs(window.sessionStorage);
+    } catch {
+      /* No persistent unlock. */
+    }
+    const timer = window.setTimeout(() => setRewardedUnlocked(false), remaining);
+    return () => window.clearTimeout(timer);
+  }, [rewardedUnlocked]);
+
+  async function unlockQuality(): Promise<void> {
+    setRewardedPending(true);
+    setRewardedFailed(false);
+    window.dispatchEvent(new Event("ongx:ad-pause"));
+    const completed = await triggerAdZone("rewarded");
+    window.dispatchEvent(new Event("ongx:ad-resume"));
+    if (completed) {
+      try {
+        writeRewardedUnlock(window.sessionStorage);
+        setRewardedUnlocked(true);
+      } catch {
+        setRewardedFailed(true);
+      }
+    } else setRewardedFailed(true);
+    setRewardedPending(false);
+  }
 
   useEffect(() => {
     progressRef.current = onProgress;
   }, [onProgress]);
+
+  useEffect(() => {
+    try {
+      setRewardedUnlocked(readRewardedUnlock(window.sessionStorage));
+    } catch {
+      setRewardedUnlocked(false);
+    }
+  }, []);
+
+  // The interstitial lives outside the player; these events let it pause and
+  // mute the video, then restore the exact previous state on close.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    let wasPlaying = false;
+    let wasMuted = false;
+
+    const pauseForAd = (): void => {
+      wasPlaying = !video.paused;
+      wasMuted = video.muted;
+      video.pause();
+      video.muted = true;
+    };
+
+    const resumeAfterAd = (): void => {
+      video.muted = wasMuted;
+      if (wasPlaying) void video.play().catch(() => undefined);
+    };
+
+    window.addEventListener("ongx:ad-pause", pauseForAd);
+    window.addEventListener("ongx:ad-resume", resumeAfterAd);
+
+    return () => {
+      window.removeEventListener("ongx:ad-pause", pauseForAd);
+      window.removeEventListener("ongx:ad-resume", resumeAfterAd);
+    };
+  }, []);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -197,6 +295,13 @@ export function Player({ src, title, poster, storageKey, onProgress }: PlayerPro
   }
 
   function changeLevel(index: number): void {
+    if (
+      rewardedGateActive &&
+      isRewardedHeight(levels.find((level) => level.index === index)?.height ?? 0)
+    ) {
+      return;
+    }
+
     dispatch({ type: "level", level: index });
     const hls = hlsRef.current;
     if (hls) hls.currentLevel = index;
@@ -444,6 +549,18 @@ export function Player({ src, title, poster, storageKey, onProgress }: PlayerPro
 
           <span className="flex-1" />
 
+          {rewardedGateActive && hasRewardedLevel ? (
+            <Button
+              type="button"
+              size="sm"
+              disabled={rewardedPending}
+              onClick={() => void unlockQuality()}
+            >
+              {tAds("rewardedUnlock")}
+            </Button>
+          ) : null}
+          {rewardedFailed ? <span role="status">{tAds("rewardedUnavailable")}</span> : null}
+
           {levels.length > 0 ? (
             <label className="inline-flex items-center gap-1 text-[11px] text-white/80">
               <span className="sr-only">{t("quality")}</span>
@@ -456,7 +573,11 @@ export function Player({ src, title, poster, storageKey, onProgress }: PlayerPro
                 {[...levels]
                   .sort((a, b) => b.height - a.height)
                   .map((level) => (
-                    <option key={level.index} value={level.index}>
+                    <option
+                      key={level.index}
+                      value={level.index}
+                      disabled={rewardedGateActive && isRewardedHeight(level.height)}
+                    >
                       {qualityLabel(level.height)}
                     </option>
                   ))}

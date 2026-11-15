@@ -4,12 +4,15 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
+import { AdInterstitial } from "@/components/ad-interstitial";
+import { AdSlot } from "@/components/ad-slot";
 import { EpisodeList } from "@/components/episode-list";
 import { OffersPanel } from "@/components/offers-panel";
 import { ReportDialog } from "@/components/report-dialog";
 import { TrailerDialog } from "@/components/trailer-dialog";
 import { WatchPlayer } from "@/components/watch-player";
 import { Link } from "@/i18n/navigation";
+import { adSlotId } from "@/lib/ads";
 import { getTitleById } from "@/lib/titles/queries";
 import type { EpisodeView } from "@/lib/titles/view";
 
@@ -77,7 +80,9 @@ export default async function Page({ params, searchParams }: Props) {
     title.source === "OWN" ? (activeEpisode?.streamUrl ?? title.streamUrl) : undefined;
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-6">
+    <div className="mx-auto w-full max-w-6xl px-4 pb-40 pt-6 md:pb-32">
+      <AdInterstitial />
+
       <Link
         href={title.href}
         className="inline-flex items-center gap-1 text-xs font-medium text-[var(--fg-dim)] transition-colors hover:text-[var(--accent)]"
@@ -187,6 +192,8 @@ export default async function Page({ params, searchParams }: Props) {
           <ReportDialog titleId={title.id} title={title.title} />
         </div>
       ) : null}
+
+      <AdSlot variant="sticky-footer" slotId={adSlotId("sticky-footer", 0, "watch")} />
     </div>
   );
 }

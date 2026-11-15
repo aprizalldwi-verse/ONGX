@@ -6,8 +6,17 @@ const optionalString = z
   .optional()
   .transform((value) => (value === "" ? undefined : value));
 
+/** Master switch for the whole ad engine. Missing/empty means "off". */
+const optionalFlag = z
+  .string()
+  .trim()
+  .optional()
+  .transform((value) => value === "true" || value === "1");
+
 export const publicEnvSchema = z.object({
+  NEXT_PUBLIC_MT_ADAPTER_URL: z.union([z.url(), z.literal("")]).optional(),
   NEXT_PUBLIC_SITE_URL: z.url(),
+  NEXT_PUBLIC_ADS_ENABLED: optionalFlag,
   NEXT_PUBLIC_MT_SMART: optionalString,
   NEXT_PUBLIC_MT_PUSH: optionalString,
   NEXT_PUBLIC_MT_VIGNETTE: optionalString,

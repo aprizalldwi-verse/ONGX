@@ -186,7 +186,35 @@ Catatan Phase 6:
 
 ## Phase 7 — Ad engine
 
-- [ ] (belum)
+- [x] `src/config/ads.ts`: zona dari env (`NEXT_PUBLIC_MT_*`) + master switch
+      `NEXT_PUBLIC_ADS_ENABLED`; tidak ada zone id hardcoded di komponen
+- [x] `<AdProvider>` satu instance di root layout: adapter `lazyOnload`, smart tag + push +
+      vignette, popunder setelah `pointerdown` pertama
+- [x] `<AdSlot variant="inline" | "in-grid" | "sticky-footer">` dengan tinggi terkunci
+      250/300/100, `data-slot-id` unik, dan div kosong `hidden` saat disabled
+- [x] Inline tiap 2 rail (maks 6), in-grid tiap 7 kartu, sticky footer di `/watch/[id]`
+- [x] Dev: kotak garis putus-putus + label zona; production disabled: tinggi 0 (tanpa CLS)
+- [x] Interstitial sekali per sesi di `/watch`: referrer internal, scroll > 1 viewport,
+      `sessionStorage.ongx_int`, pause/mute/resume player
+- [x] Rewarded 1080p: unlock 30 menit di `sessionStorage`, gate HLS.js mixed-quality;
+      manifest high-only tidak dikunci; native HLS tanpa pemilih kualitas
+- [x] Adblock nudge, `<noscript>` placeholder, `/ads.txt` dengan baris `# TODO`
+- [x] 24 file / 187 unit test web (205 test seluruh workspace); e2e 12/12
+- [x] Gate: lint, typecheck, test, build, format:check hijau
+
+Catatan Phase 7:
+
+- Live fill belum diverifikasi. Monetag harus menyetujui akun dan memberi zona + snippet
+  per format; tanpa itu tidak ada klaim "slot terisi". Batas integrasinya
+  `window.ongxAds` (`AdNetworkAdapter` di `src/lib/ads-client.ts`) yang dimuat dari
+  `NEXT_PUBLIC_MT_ADAPTER_URL`; kontrak dan checklist verifikasi ada di `docs/ads.md`.
+- Rewarded hanya diberikan saat adapter mengembalikan `completed`, bukan timer/close button.
+  Ini juga mencegah kualitas tinggi terbuka hanya karena SDK gagal dimuat.
+- E2E mode disabled membuktikan semua slot berukuran 0 dan tidak ada layout shift yang
+  berasal dari `[data-slot-id]`; script adapter juga tidak dirender.
+- `document.referrer` tidak berubah pada navigasi klien App Router, jadi marker
+  `ongx:internal-nav` mencatat navigasi internal. Interstitial tetap butuh scroll melewati
+  viewport pertama dan hanya tampil sekali per sesi.
 
 ## Phase 8 — SEO
 

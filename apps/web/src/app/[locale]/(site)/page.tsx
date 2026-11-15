@@ -1,11 +1,13 @@
 import { Clapperboard } from "lucide-react";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { Suspense } from "react";
+import { Fragment, Suspense } from "react";
 
+import { AdSlot } from "@/components/ad-slot";
 import { ContinueWatching } from "@/components/continue-watching";
 import { EmptyState } from "@/components/empty-state";
 import { Hero } from "@/components/hero";
 import { TitleRail, TitleRailSkeleton } from "@/components/title-rail";
+import { adSlotId, inlineSlotNumber } from "@/lib/ads";
 import { getHomeHero, getHomeRail, type HomeRailKey } from "@/lib/titles/queries";
 
 export const revalidate = 60;
@@ -57,11 +59,20 @@ export default async function HomePage({ params }: Props) {
         <ContinueWatching />
 
         {hero ? (
-          RAIL_KEYS.map((railKey) => (
-            <Suspense key={railKey} fallback={<TitleRailSkeleton />}>
-              <HomeRail locale={locale} railKey={railKey} />
-            </Suspense>
-          ))
+          RAIL_KEYS.map((railKey, index) => {
+            const slotNumber = inlineSlotNumber(index);
+
+            return (
+              <Fragment key={railKey}>
+                <Suspense fallback={<TitleRailSkeleton />}>
+                  <HomeRail locale={locale} railKey={railKey} />
+                </Suspense>
+                {slotNumber !== undefined ? (
+                  <AdSlot variant="inline" slotId={adSlotId("inline", slotNumber, "home")} />
+                ) : null}
+              </Fragment>
+            );
+          })
         ) : (
           <div className="mt-8">
             <EmptyState

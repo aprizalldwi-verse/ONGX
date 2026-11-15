@@ -80,7 +80,7 @@ export default async function Page({ params, searchParams }: Props) {
             {t("resultCount", { count: items.length })}
           </h2>
           <div className="mt-4">
-            <PosterGrid items={items} />
+            <PosterGrid items={items} slotScope="search" />
           </div>
         </section>
       )}
