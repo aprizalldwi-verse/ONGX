@@ -32,9 +32,29 @@ async function probeRedis(): Promise<ProbeState> {
   }
 }
 
+async function probeWorker(redis: ReturnType<typeof getRedis>): Promise<ProbeState> {
+  if (!redis) return "disabled";
+
+  try {
+    if (redis.status === "wait") await redis.connect();
+    const key = process.env.WORKER_HEALTH_KEY?.trim() || "ongx:worker:heartbeat";
+    const heartbeat = await redis.get(key);
+    return heartbeat ? "up" : "down";
+  } catch (error) {
+    console.error("[health] worker", error);
+    return "down";
+  }
+}
+
 export async function GET() {
   const [database, redis] = await Promise.all([probeDatabase(), probeRedis()]);
-  const report = buildHealthReport({ database, redis });
+  const workerRequired = process.env.WORKER_HEALTH_REQUIRED === "true";
+  const worker = workerRequired ? await probeWorker(getRedis()) : undefined;
+  const report = buildHealthReport({
+    database,
+    redis,
+    ...(worker !== undefined ? { worker } : {}),
+  });
 
   return NextResponse.json(report, {
     status: healthStatusCode(report.status),

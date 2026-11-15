@@ -294,3 +294,41 @@ sebagai data URI; kegagalan/timeout/ukuran >4 MB jatuh ke varian wordmark tanpa 
 tidak boleh menggantung karena host `image.tmdb.org` dan `s4.anilist.co` bisa lambat atau
 diblokir. Alasan: OG image harus selalu 200 dalam batas waktu crawler, dan tampilan wordmark
 tetap layak dibagikan.
+
+ASUMSI-049: Worker Phase 9 hidup di dalam `apps/web` (`src/worker/*`, `scripts/worker-once.ts`)
+alih-alih app/package terpisah. Pipeline sync diekstrak ke `src/lib/sync/*` sehingga CLI dan
+worker memakai kode yang sama persis, dan `@/lib/sources/*`, normalisasi, serta `upsertTitle`
+tidak perlu dipindahkan atau diduplikasi. Entry worker tidak diimpor route Next mana pun, jadi
+bundle web tidak berubah. Alasan: memisahkan runtime sekarang berarti refactor besar (adapter,
+alias, tsconfig, build terpisah) tanpa manfaat yang bisa dirasakan pengguna pada fase ini;
+pemisahan tetap mungkin nanti karena batasnya sudah jelas di folder `src/worker` dan
+`src/lib/sync`.
+
+ASUMSI-050: Penjadwalan memakai BullMQ `upsertJobScheduler` dengan id stabil (`ongx:catalog-sync`,
+`ongx:offers-refresh`, `ongx:sync-history-cleanup`) dan pola cron UTC dari env. Setiap boot
+meng-upsert ketiga jadwal sehingga mengubah `WORKER_*_CRON` lalu me-restart worker sudah cukup,
+tanpa skrip migrasi jadwal dan tanpa duplikasi saat replika bertambah. Job memakai 3 percobaan
+dengan exponential backoff 1/2/4 menit; completed disimpan 1 hari (maks 100) dan failed 7 hari
+(maks 500). Alasan: gangguan provider/api sesaat tidak boleh menggagalkan satu siklus penuh, dan
+retensi berbasis umur + jumlah membatasi pertumbuhan Redis.
+
+ASUMSI-051: Refresh offer dipisahkan dari sync katalog dan memilih judul `TMDB` + `LIVE` dengan
+`offersUpdatedAt` null atau lebih tua dari `WORKER_OFFERS_MAX_AGE_HOURS` (default 24 jam),
+diurutkan `popularity desc, id asc` agar paging stabil. Offer baru ditulis dalam satu transaksi
+**setelah** fetch provider berhasil; bila fetch gagal, baris offer lama dibiarkan utuh dan
+`offersUpdatedAt` tidak disentuh sehingga judul itu dicoba lagi pada siklus berikutnya. Alasan:
+link provider berubah lebih sering daripada metadata, dan menghapus offer lebih dulu akan
+membuat halaman watch kehilangan tombol provider hanya karena satu timeout.
+
+ASUMSI-052: `maintenance.cleanup` hanya menghapus baris `SyncJob` yang lebih tua dari
+`WORKER_RETENTION_DAYS` (default 30, `0` mematikan). Retensi BullMQ diatur terpisah oleh
+`removeOnComplete`/`removeOnFail`. Alasan: `SyncJob` adalah audit trail tingkat aplikasi yang
+ingin dibaca admin, sedangkan antrean BullMQ adalah detail runtime; menyatukan keduanya akan
+mengikat masa simpan audit ke tuning antrean.
+
+ASUMSI-053: Worker menulis heartbeat ISO-8601 ke Redis (`ongx:worker:heartbeat`, TTL 45 detik,
+diperbarui tiap `WORKER_HEARTBEAT_MS`) dan menghapusnya saat shutdown rapi. `/api/health` hanya
+memeriksa key itu bila `WORKER_HEALTH_REQUIRED=true`; heartbeat hilang menurunkan status ke
+`degraded` dengan HTTP 200, bukan 503. Alasan: web masih bisa melayani halaman dari data yang
+ada tanpa worker, jadi mematikan seluruh tier web hanya karena worker mati akan memperburuk
+dampak; `degraded` tetap memberi sinyal yang bisa di-alert.

@@ -262,9 +262,43 @@ Catatan Phase 8:
 - E2E sitemap mengambil 50 URL sampel dari chunk dan memastikan semuanya 200, plus index,
   robots, manifest, RSS, OG image, dan 404 slug asing.
 
-## Phase 9 — Worker
+## Phase 9 — Worker ✅
 
-- [ ] (belum)
+- [x] Pipeline sync diekstrak dari `scripts/catalog-sync.ts` ke `src/lib/sync/*` supaya CLI
+      dan worker memakai kode yang sama (`catalog`, `offers`, `cleanup`, `counters`, logger)
+- [x] BullMQ + ioredis: queue `ongx-jobs`, worker `apps/web/src/worker/main.ts`,
+      concurrency dari `WORKER_CONCURRENCY` (1–8), prefix dari `WORKER_QUEUE_PREFIX`
+- [x] Tiga jadwal berulang di-upsert saat boot (idempoten): `sync.catalog` (`0 2 * * *`),
+      `sync.offers` (`0 */6 * * *`), `maintenance.cleanup` (`30 3 * * *`), cron UTC
+- [x] Payload divalidasi Zod sebelum menyentuh DB/provider; job tak dikenal ditolak
+- [x] Retry 3× exponential backoff (1/2/4 menit), completed disimpan 1 hari (maks 100),
+      failed 7 hari (maks 500)
+- [x] `sync.offers` memilih judul TMDB LIVE dengan `offersUpdatedAt` null/lebih tua dari
+      batas, mengganti offer dalam transaksi hanya setelah fetch berhasil (offer lama tidak
+      pernah terhapus saat provider error)
+- [x] `maintenance.cleanup` menghapus `SyncJob` lebih tua dari `WORKER_RETENTION_DAYS`
+- [x] Migrasi `20261115000000_add_offers_updated_at` + index
+      `(source, status, offersUpdatedAt)`
+- [x] Heartbeat Redis `ongx:worker:heartbeat` (TTL 45 detik); `/api/health` melaporkan
+      `checks.worker` bila `WORKER_HEALTH_REQUIRED=true` dan menurunkan status ke `degraded`
+      (bukan 503)
+- [x] Graceful shutdown SIGINT/SIGTERM (drain worker, tutup queue/Redis, hapus heartbeat)
+- [x] `pnpm worker` dan `pnpm worker:once --job=<nama>` untuk operasi manual
+- [x] Gate: lint, typecheck, test (229 unit), build, format:check hijau
+
+Catatan Phase 9:
+
+- Worker ditempatkan di `apps/web` (bukan app/package terpisah) karena adapter TMDB/AniList,
+  normalisasi, dan `upsertTitle` hidup di sana; memisahkan app akan memaksa refactor besar
+  tanpa manfaat pada fase ini. Entry worker tidak diimpor route Next, jadi bundle web tidak
+  berubah.
+- Verifikasi runtime: worker berjalan, ketiga scheduler terdaftar di Redis, heartbeat terisi,
+  `maintenance.cleanup` jalan, `sync.offers` me-refresh 2 judul (3 offer dari TMDB), dan
+  `sync.catalog --tmdb=1 --anilist=1` memperbarui satu judul per sumber tanpa gagal.
+- `tsx` masih devDependency. Image produksi Phase 12 harus menyertakan devDependencies atau
+  mengompilasi worker terpisah; dicatat di README.
+- `sync.offers` hanya untuk TMDB karena offer AniList menempel di payload `detail` dan sudah
+  ikut `sync.catalog` (ASUMSI-034).
 
 ## Phase 10 — Admin
 

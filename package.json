@@ -20,6 +20,8 @@
     "db:seed": "pnpm --filter @ongx/db run seed",
     "db:studio": "pnpm --filter @ongx/db run studio",
     "catalog:sync": "pnpm --filter @ongx/web run catalog:sync",
+    "worker": "pnpm --filter @ongx/web run worker",
+    "worker:once": "pnpm --filter @ongx/web run worker:once",
     "e2e": "pnpm --filter @ongx/web run e2e",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

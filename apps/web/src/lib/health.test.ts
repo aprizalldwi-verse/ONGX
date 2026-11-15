@@ -25,4 +25,26 @@ describe("buildHealthReport", () => {
     expect(healthStatusCode(report.status)).toBe(503);
     expect(buildHealthReport({ database: "up", redis: "down", now }).status).toBe("down");
   });
+
+  it("omits the worker check when the worker is not deployed", () => {
+    const report = buildHealthReport({ database: "up", redis: "up", now });
+
+    expect(report.checks).not.toHaveProperty("worker");
+    expect(report.status).toBe("ok");
+  });
+
+  it("reports a fresh worker heartbeat as up", () => {
+    const report = buildHealthReport({ database: "up", redis: "up", worker: "up", now });
+
+    expect(report.checks.worker).toBe("up");
+    expect(report.status).toBe("ok");
+  });
+
+  it("degrades, but never 503s, when a required worker is missing", () => {
+    const report = buildHealthReport({ database: "up", redis: "up", worker: "down", now });
+
+    expect(report.checks.worker).toBe("down");
+    expect(report.status).toBe("degraded");
+    expect(healthStatusCode(report.status)).toBe(200);
+  });
 });

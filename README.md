@@ -3,7 +3,7 @@
 Portal katalog film, series, dan anime dengan UI Indonesia-first.
 Metadata dari TMDB + AniList, pemutaran lewat provider resmi.
 
-**Status:** Phase 5 (halaman katalog + player). Lihat `PROGRESS.md`.
+**Status:** Phase 9 (worker latar belakang). Lihat `PROGRESS.md`.
 
 ## Prasyarat
 
@@ -21,6 +21,7 @@ pnpm db:deploy                 # terapkan migrasi
 pnpm db:seed                   # 24 genre (+ admin bila ADMIN_PASS* diisi)
 pnpm catalog:sync              # tarik metadata TMDB + AniList (butuh TMDB_API_KEY)
 pnpm catalog:sync --force      # paksa refresh walau baris <24 jam (mis. backfill offer)
+pnpm worker                    # worker: jadwal sync, refresh offer, cleanup
 pnpm dev                       # http://localhost:3000
 ```
 
@@ -44,6 +45,8 @@ pnpm format:check # Prettier (cek, dipakai gate)
 pnpm e2e          # Playwright smoke (butuh `pnpm build` + server/Chrome)
 
 pnpm catalog:sync # sinkronisasi metadata TMDB + AniList
+pnpm worker       # worker BullMQ (butuh Redis); jalankan proses terpisah
+pnpm worker:once  # jalankan satu job manual: --job=<nama>
 pnpm db:generate  # generate Prisma client
 pnpm db:migrate   # prisma migrate dev (butuh Postgres hidup)
 pnpm db:deploy    # prisma migrate deploy (produksi)
@@ -52,6 +55,31 @@ pnpm db:studio    # Prisma Studio
 ```
 
 Health check: `GET /api/health` — 200 `{status:"ok"|"degraded"}`, 503 bila DB/Redis down.
+Set `WORKER_HEALTH_REQUIRED=true` untuk ikut memeriksa heartbeat worker; worker yang mati
+menurunkan status ke `degraded` (bukan 503) karena halaman tetap bisa dilayani.
+
+### Worker (Phase 9)
+
+`pnpm worker` menjalankan tiga jadwal berulang (cron UTC). Semua jadwal di-upsert saat boot,
+jadi mengubah env lalu restart worker cukup untuk mengganti jadwal:
+
+| Job | Default | Isi |
+| --- | --- | --- |
+| `sync.catalog` | `0 2 * * *` | TMDB 100 + AniList 60 detail, episode, genre, kredit, offer |
+| `sync.offers` | `0 */6 * * *` | refresh `WatchOffer` 50 judul TMDB terpopuler yang offer-nya >24 jam |
+| `maintenance.cleanup` | `30 3 * * *` | hapus riwayat `SyncJob` lebih tua dari 30 hari |
+
+Job manual (tanpa menunggu cron):
+
+```bash
+pnpm worker:once --job=maintenance.cleanup
+pnpm worker:once --job=sync.offers --offers-limit=5 --max-age-hours=0
+pnpm worker:once --job=sync.catalog --tmdb=5 --anilist=5
+```
+
+Retry: 3 percobaan dengan exponential backoff (1, 2, 4 menit). Worker menulis heartbeat ke
+Redis (`ongx:worker:heartbeat`, TTL 45 detik) dan menutup antrean dengan rapi pada SIGINT/SIGTERM.
+Konfigurasi lengkap ada di `.env.example` (`WORKER_*`).
 
 E2E: `pnpm e2e` menjalankan Playwright terhadap build produksi. Di mesin dev dipakai Chrome
 sistem (`channel: "chrome"`); di CI pasang browser dengan

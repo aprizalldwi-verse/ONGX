@@ -82,6 +82,8 @@ model Title {
   /** Only set for `Source.OWN` titles; never populated from TMDB/AniList. */
   streamUrl    String?
   status       TitleStatus @default(LIVE)
+  /** Last successful provider-offer refresh; `null` means never refreshed. */
+  offersUpdatedAt DateTime?
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
@@ -93,6 +95,7 @@ model Title {
 
   @@unique([source, kind, remoteId])
   @@index([kind, status, popularity(sort: Desc)])
+  @@index([source, status, offersUpdatedAt])
   @@index([releasedAt(sort: Desc)])
   @@index([year])
 }

@@ -11,12 +11,16 @@
     "test": "vitest run",
     "tmdb:smoke": "vitest run --config vitest.smoke.mts",
     "catalog:sync": "dotenv -e .env.local -- tsx scripts/catalog-sync.ts",
+    "worker": "dotenv -e .env.local -- tsx src/worker/main.ts",
+    "worker:once": "dotenv -e .env.local -- tsx scripts/worker-once.ts",
     "e2e": "dotenv -e .env.local -- playwright test"
   },
   "dependencies": {
     "@ongx/db": "workspace:*",
     "@ongx/shared": "workspace:*",
     "@ongx/ui": "workspace:*",
+    "bullmq": "6.7.6",
+    "cron-parser": "5.10.6",
     "hls.js": "^1.7.4",
     "ioredis": "5.11.1",
     "lucide-react": "0.545.0",
