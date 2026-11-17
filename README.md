@@ -1,9 +1,12 @@
 # ONGX
 
+[![CI](https://github.com/aprizalldwi-verse/ONGX/actions/workflows/ci.yml/badge.svg)](https://github.com/aprizalldwi-verse/ONGX/actions/workflows/ci.yml)
+
 Portal katalog film, series, dan anime dengan UI Indonesia-first.
 Metadata dari TMDB + AniList, pemutaran lewat provider resmi.
 
-**Status:** Phase 11 (hardening). Lihat `PROGRESS.md`.
+**Status:** Phase 12 selesai (docs & deploy). Lihat `PROGRESS.md` untuk checklist per fase dan
+`DECISIONS.md` untuk asumsi teknis.
 
 ## Prasyarat
 
@@ -44,6 +47,7 @@ pnpm format       # Prettier (tulis)
 pnpm format:check # Prettier (cek, dipakai gate)
 pnpm e2e          # Playwright smoke (butuh `pnpm build` + server/Chrome)
 pnpm audit        # audit dependensi produksi (target: 0 temuan)
+pnpm smoke:urls   # cek 50 URL sampel dari sitemap (--base=... --limit=...)
 
 pnpm catalog:sync # sinkronisasi metadata TMDB + AniList
 pnpm worker       # worker BullMQ (butuh Redis); jalankan proses terpisah
@@ -144,6 +148,42 @@ dimatikan, source map browser tidak dipublikasikan, dan body server action dibat
 Detail header, batas request, asumsi proxy/HTTPS, dan checklist operasional ada di
 `docs/security.md`.
 
+## Deploy (Phase 12)
+
+Model default: satu VPS (Node 22 + pnpm) dengan Nginx + certbot di depan Next (`systemd`
+`ongx-web`) dan worker BullMQ (`ongx-worker`); Postgres 16 + Redis 7 dari `docker-compose.yml`
+yang hanya bind ke loopback. Vercel didokumentasikan sebagai alternatif untuk web saja karena
+worker butuh proses long-running.
+
+```bash
+# di VPS, setelah clone + .env.local terisi (lihat docs/deployment.md)
+pnpm install --frozen-lockfile
+pnpm db:generate && pnpm db:deploy && pnpm db:seed
+pnpm catalog:sync
+pnpm build
+sudo cp deploy/ongx-web.service deploy/ongx-worker.service /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now ongx-web ongx-worker
+pnpm smoke:urls --base=https://ongx.example --limit=50
+```
+
+Langkah lengkap (termasuk Nginx/TLS, backup + restore, update/rollback, verifikasi Monetag, dan
+troubleshooting) ada di `docs/deployment.md`. Ringkasan keputusan: `DECISIONS.md` ASUMSI-064…069.
+
+Indeks dokumen:
+
+| Dokumen | Isi |
+| --- | --- |
+| `docs/deployment.md` | Deploy VPS end-to-end, alternatif Vercel, update/rollback, backup, iklan |
+| `docs/operations.md` | Runbook harian, insiden (web/worker/Redis/DB), maintenance, log |
+| `docs/env.md` | Referensi semua env, build-time vs runtime |
+| `docs/qa.md` | Gate otomatis, e2e, `smoke:urls`, Lighthouse + hasil aktual, checklist manual |
+| `docs/security.md` | Header, CSP, rate limit, asumsi proxy/HTTPS |
+| `docs/ads.md` | Kontrak bridge Monetag dan verifikasi format |
+
+CI (`.github/workflows/ci.yml`) menjalankan install, `audit --prod`, format, lint, typecheck, unit
+test, dan production build dengan service Postgres/Redis. Playwright dan Lighthouse dijalankan
+lokal/staging karena membutuhkan katalog hasil sync dan jaringan nyata (ASUMSI-065).
+
 ## Struktur
 
 ```
@@ -151,6 +191,9 @@ apps/web         Next.js 15 App Router
 packages/db      Prisma schema, migration, seed
 packages/ui      primitif shadcn/ui + util
 packages/shared  tipe, util, format
+deploy/          unit systemd, contoh Nginx, skrip backup
+docs/            deployment, operations, env, qa, security, ads
+.github/         workflow CI
 docker-compose.yml
 DECISIONS.md     asumsi & keputusan teknis
 PROGRESS.md      checklist fase

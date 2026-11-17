@@ -370,4 +370,33 @@ Catatan Phase 11:
 
 ## Phase 12 — Docs & deploy
 
-- [ ] (belum)
+- [x] CI GitHub Actions: quality job (install, `audit --prod`, format, lint, typecheck, unit test)
+      + build job dengan service Postgres 16/Redis 7, `migrate deploy`, `pnpm build`
+- [x] Artefak deploy: `deploy/ongx-web.service`, `deploy/ongx-worker.service`,
+      `deploy/nginx.conf.example` (TLS, XFF overwrite, cache statis), `deploy/backup-db.sh`
+- [x] `docker-compose.yml` hanya bind Postgres/Redis ke `127.0.0.1`
+- [x] `docs/deployment.md` (VPS end-to-end, Vercel alternatif, update/rollback, backup, Monetag,
+      troubleshooting), `docs/operations.md` (runbook + insiden), `docs/env.md` (referensi env
+      build vs runtime), `docs/qa.md` (gate, e2e, Lighthouse + hasil aktual, checklist manual)
+- [x] `pnpm smoke:urls` (`apps/web/scripts/check-sitemap.ts`): sampel merata dari
+      `/sitemap.xml` + chunk, gagal bila ada respons ≥ 400
+- [x] Optimasi performa: backdrop hero mobile dimatikan (`hidden sm:block`, `quality=60`, tanpa
+      `priority`), `sizes` tepat per kartu rail, hanya rail pertama `priority` + di-await,
+      `<AdProvider>` hanya saat iklan aktif
+- [x] README: status Phase 12, indeks dokumen, perintah `smoke:urls`, quickstart deploy
+- [x] `DECISIONS.md` ASUMSI-064…069 (model deploy, cakupan CI, devDependencies runtime, backup,
+      Nginx XFF, optimasi performa)
+- [x] Gate: lint, typecheck, test, build, e2e, format:check hijau
+
+Catatan Phase 12:
+
+- Verifikasi `pnpm smoke:urls`: 8/8 dan 5/5 URL sitemap mengembalikan 200 pada build produksi
+  lokal. Skrip ini juga dipakai setelah deploy (`--base=https://ongx.example --limit=50`).
+- Lighthouse mobile lokal: A11y 100, best-practices 96, SEO 100, CLS 0, tetapi Performance
+  71–79 (median 71–73) — **di bawah target 85**. LCP masih poster rail pertama lewat
+  `/_next/image` ke `s4.anilist.co` (render delay ~450 ms) dan HTML ISR berisi 9 rail × 12 kartu.
+  Angka lengkap, penyebab, dan opsi lanjutan ada di `docs/qa.md`; tidak diklaim memenuhi target.
+- CI sengaja tidak menjalankan Playwright/Lighthouse (butuh katalog hasil sync dan jaringan
+  nyata); lihat ASUMSI-065.
+- `.env.local` tetap tidak masuk repo; `ADMIN_PASS` hanya untuk seed, lalu diganti
+  `ADMIN_PASS_HASH`. `NEXT_PUBLIC_*`/`CSP_EXTRA_ORIGINS` dibaca saat build (ASUMSI-066 + docs/env).

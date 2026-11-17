@@ -22,9 +22,9 @@ export async function Hero({ item }: HeroProps) {
           src={item.backdropUrl}
           alt=""
           fill
-          priority
           sizes="100vw"
-          className="object-cover object-center opacity-45"
+          quality={60}
+          className="hidden object-cover object-center opacity-45 sm:block"
         />
       ) : null}
 

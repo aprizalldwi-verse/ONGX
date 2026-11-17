@@ -1,0 +1,27 @@
+[Unit]
+Description=ONGX worker (BullMQ schedules)
+Documentation=https://github.com/aprizalldwi-verse/ONGX
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+User=ongx
+Group=ongx
+WorkingDirectory=/srv/ongx
+EnvironmentFile=/srv/ongx/apps/web/.env.local
+Environment=NODE_ENV=production
+# Runs the TypeScript entrypoint with tsx (dev dependency); see ASUMSI-066.
+ExecStart=/usr/bin/env pnpm --filter @ongx/web exec tsx src/worker/main.ts
+Restart=always
+RestartSec=10
+TimeoutStopSec=60
+KillSignal=SIGTERM
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

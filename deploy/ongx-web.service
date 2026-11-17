@@ -1,0 +1,31 @@
+[Unit]
+Description=ONGX web (Next.js)
+Documentation=https://github.com/aprizalldwi-verse/ONGX
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+User=ongx
+Group=ongx
+WorkingDirectory=/srv/ongx
+EnvironmentFile=/srv/ongx/apps/web/.env.local
+Environment=NODE_ENV=production
+Environment=PORT=3000
+# Adjust if `which pnpm` reports another path (corepack usually installs
+# /usr/local/bin/pnpm).
+ExecStart=/usr/bin/env pnpm --filter @ongx/web start
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+KillSignal=SIGTERM
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+# Next writes ISR/image/fetch cache here; everything else stays read-only.
+ReadWritePaths=/srv/ongx/apps/web/.next/cache
+
+[Install]
+WantedBy=multi-user.target

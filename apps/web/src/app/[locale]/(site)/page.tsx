@@ -43,12 +43,21 @@ const RAIL_HREF: Record<HomeRailKey, string> = {
 };
 
 const RAIL_KEYS = Object.keys(RAIL_HREF) as HomeRailKey[];
+const FIRST_RAIL_KEY: HomeRailKey = "trending";
 
 /**
  * Each rail resolves on its own so the page shell and hero reach the browser
  * first. `TitleRail` hides itself when the query returns no items.
  */
-async function HomeRail({ locale, railKey }: { locale: string; railKey: HomeRailKey }) {
+async function HomeRail({
+  locale,
+  railKey,
+  priorityFirst,
+}: {
+  locale: string;
+  railKey: HomeRailKey;
+  priorityFirst: boolean;
+}) {
   const [t, items] = await Promise.all([getTranslations("home"), getHomeRail(railKey, locale)]);
 
   return (
@@ -57,6 +66,7 @@ async function HomeRail({ locale, railKey }: { locale: string; railKey: HomeRail
       items={items}
       href={RAIL_HREF[railKey]}
       actionLabel={t("railAction")}
+      priorityFirst={priorityFirst}
     />
   );
 }
@@ -82,20 +92,27 @@ export default async function HomePage({ params }: Props) {
         <ContinueWatching />
 
         {hero ? (
-          RAIL_KEYS.map((railKey, index) => {
-            const slotNumber = inlineSlotNumber(index);
+          <>
+            {/* The first rail is awaited so its poster can be preloaded with the
+                shell; later rails stream behind Suspense. */}
+            <HomeRail locale={locale} railKey={FIRST_RAIL_KEY} priorityFirst />
 
-            return (
-              <Fragment key={railKey}>
-                <Suspense fallback={<TitleRailSkeleton />}>
-                  <HomeRail locale={locale} railKey={railKey} />
-                </Suspense>
-                {slotNumber !== undefined ? (
-                  <AdSlot variant="inline" slotId={adSlotId("inline", slotNumber, "home")} />
-                ) : null}
-              </Fragment>
-            );
-          })
+            {RAIL_KEYS.slice(1).map((railKey, offset) => {
+              const index = offset + 1;
+              const slotNumber = inlineSlotNumber(index);
+
+              return (
+                <Fragment key={railKey}>
+                  <Suspense fallback={<TitleRailSkeleton />}>
+                    <HomeRail locale={locale} railKey={railKey} priorityFirst={false} />
+                  </Suspense>
+                  {slotNumber !== undefined ? (
+                    <AdSlot variant="inline" slotId={adSlotId("inline", slotNumber, "home")} />
+                  ) : null}
+                </Fragment>
+              );
+            })}
+          </>
         ) : (
           <div className="mt-8">
             <EmptyState

@@ -413,3 +413,51 @@ middleware tambahan, dan HSTS di dev/e2e http akan mengunci browser lokal ke HTT
 browser dimatikan agar nama file internal tidak bocor; stack trace tetap di log server. Proxy
 produksi harus menimpa `X-Forwarded-For`, menangani TLS, dan tidak menambahkan cache publik untuk
 rute admin/API (lihat `docs/security.md`).
+
+ASUMSI-064: Model deploy produksi adalah VPS dengan Node 22 + pnpm, web/worker dijalankan
+systemd (`ongx-web`, `ongx-worker`), Postgres 16 + Redis 7 lewat `docker-compose.yml` yang
+hanya bind ke `127.0.0.1`, dan Nginx + certbot untuk TLS. Worker tidak memakai endpoint cron
+HTTP karena BullMQ sudah menjadwalkan job berulang di proses long-running; `CRON_SECRET`
+hanya dicadangkan. Alasan: satu proses web dan satu worker berbagi database/Redis/`.env.local`
+tanpa platform tambahan, ISR dan cache gambar Next membutuhkan disk lokal yang persisten, dan
+Vercel (didokumentasikan sebagai alternatif web saja) tidak menjalankan worker BullMQ.
+Detail langkah dan rollback ada di `docs/deployment.md`.
+
+ASUMSI-065: CI (`.github/workflows/ci.yml`) menjalankan quality job (install, `audit --prod`,
+format, lint, typecheck, unit test) dan build job dengan service Postgres/Redis + `migrate
+deploy`, tetapi **tidak** menjalankan Playwright atau Lighthouse. Alasan: smoke suite bergantung
+pada katalog hasil sync TMDB/AniList yang nyata (judul dan episode tertentu), sehingga tanpa
+seed deterministik hasilnya flaky; Lighthouse juga bergantung pada latensi host gambar eksternal
+dan tidak deterministik di runner. E2E/Lighthouse dijalankan lokal atau terhadap staging dan
+hasil aktualnya dicatat di `docs/qa.md`.
+
+ASUMSI-066: Instalasi produksi memakai `pnpm install --frozen-lockfile` **termasuk**
+devDependencies. Alasan: worker dijalankan dengan `tsx` dan operasi membutuhkan Prisma CLI
+(`db:generate`, `db:deploy`, `db:seed`), yang keduanya devDependency; menghapus devDependencies
+akan mematikan worker dan migrasi. Konsekuensi: image/disk VPS sedikit lebih besar; ini tidak
+memengaruhi bundle browser karena Next hanya mengirim dependensi yang diimpor komponen klien.
+
+ASUMSI-067: Backup produksi hanya `pg_dump` harian (retensi 14 hari, `deploy/backup-db.sh`) dan
+dump disalin ke storage eksternal oleh operator. Redis dan cache ISR/gambar tidak di-backup.
+Alasan: Redis hanya berisi cache, antrean BullMQ, rate limit, dan heartbeat yang aman hilang
+(job terjadwal akan berjalan lagi), sementara seluruh state bisnis ada di Postgres; cache gambar
+bisa dibangun ulang dari upstream. Prosedur restore ke database scratch ada di
+`docs/deployment.md` §10.
+
+ASUMSI-068: Nginx menimpa `X-Forwarded-For` dengan `$remote_addr` (bukan
+`$proxy_add_x_forwarded_for`) dan tidak menduplikasi CSP/HSTS. Alasan: `clientIpFromHeaders`
+memakai nilai XFF untuk rate limit, sehingga proxy harus menjadi satu-satunya penulis header
+itu; CSP/HSTS sudah dikirim aplikasi (`next.config.ts`) dan duplikasi berisiko berbeda antar
+rute. `/_next/static/` di-cache `immutable` di proxy, `/admin`/`/api` tidak pernah di-cache
+publik. `client_max_body_size 2m` memberi margin di atas batas body aplikasi (512 kb action,
+16 KiB report).
+
+ASUMSI-069: Optimasi performa Phase 12: backdrop hero disembunyikan di mobile (`hidden sm:block`,
+`quality={60}` tanpa `priority`), semua rail memakai `sizes` kartu yang tepat (132/150/164 px),
+hanya rail pertama yang di-`priority` dan di-await di shell, dan `<AdProvider>` tidak dirender
+saat `ADS_ENABLED=false`. Alasan: di viewport mobile backdrop penuh mengurangi LCP ke elemen
+dekoratif dan memaksa unduhan `100vw`; membatasi `priority` mencegah 100+ gambar berebut
+bandwidth; gate iklan menghindari chunk bridge saat iklan mati. Hasil Lighthouse mobile lokal
+bervariasi 71–79 (aksesibilitas 100, best-practices 96, SEO 100, CLS 0) karena LCP masih
+ditentukan latensi `/_next/image` ke `s4.anilist.co`; angka dan caveat dicatat di `docs/qa.md`
+dan tidak diklaim memenuhi target ≥ 85 tanpa pengukuran ulang di lingkungan yang representatif.

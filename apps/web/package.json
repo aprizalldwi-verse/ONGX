@@ -11,6 +11,7 @@
     "test": "vitest run",
     "tmdb:smoke": "vitest run --config vitest.smoke.mts",
     "catalog:sync": "dotenv -e .env.local -- tsx scripts/catalog-sync.ts",
+    "smoke:urls": "dotenv -e .env.local -- tsx scripts/check-sitemap.ts",
     "worker": "dotenv -e .env.local -- tsx src/worker/main.ts",
     "worker:once": "dotenv -e .env.local -- tsx scripts/worker-once.ts",
     "e2e": "dotenv -e .env.local -- playwright test"

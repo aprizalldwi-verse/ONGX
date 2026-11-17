@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 
 import { AdProvider } from "@/components/ad-provider";
 import ThemeScript from "@/components/theme-script";
+import { ADS_ENABLED } from "@/config/ads";
 import { routing } from "@/i18n/routing";
 import { publicEnv } from "@/lib/env.public";
 import { barlow, inter } from "@/lib/fonts";
@@ -76,7 +77,7 @@ export default async function LocaleLayout({
         </a>
         <NextIntlClientProvider>
           {children}
-          <AdProvider />
+          {ADS_ENABLED ? <AdProvider /> : null}
         </NextIntlClientProvider>
       </body>
     </html>

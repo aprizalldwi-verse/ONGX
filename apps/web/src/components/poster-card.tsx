@@ -8,10 +8,14 @@ import type { TitleCardView } from "@/lib/titles/view";
 export interface PosterCardProps {
   item: TitleCardView;
   priority?: boolean;
+  /** Overrides the responsive `sizes` for narrow rails. */
+  sizes?: string;
   className?: string;
 }
 
-export function PosterCard({ item, priority = false, className }: PosterCardProps) {
+const DEFAULT_SIZES = "(max-width: 640px) 42vw, (max-width: 1024px) 24vw, 180px";
+
+export function PosterCard({ item, priority = false, sizes, className }: PosterCardProps) {
   return (
     <Link
       href={item.href}
@@ -25,7 +29,7 @@ export function PosterCard({ item, priority = false, className }: PosterCardProp
             alt=""
             fill
             priority={priority}
-            sizes="(max-width: 640px) 42vw, (max-width: 1024px) 24vw, 180px"
+            sizes={sizes ?? DEFAULT_SIZES}
             className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
           />
         ) : (

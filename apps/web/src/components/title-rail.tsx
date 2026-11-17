@@ -6,15 +6,24 @@ import type { TitleCardView } from "@/lib/titles/view";
 import { PosterCard } from "./poster-card";
 
 const CARD_WIDTH = "w-[132px] shrink-0 snap-start sm:w-[150px] lg:w-[164px]";
+const CARD_SIZES = "(max-width: 640px) 132px, (max-width: 1024px) 150px, 164px";
 
 export interface TitleRailProps {
   title: string;
   items: TitleCardView[];
   href?: string | undefined;
   actionLabel?: string | undefined;
+  /** Preloads the first card (use only for the first above-the-fold rail). */
+  priorityFirst?: boolean;
 }
 
-export function TitleRail({ title, items, href, actionLabel }: TitleRailProps) {
+export function TitleRail({
+  title,
+  items,
+  href,
+  actionLabel,
+  priorityFirst = false,
+}: TitleRailProps) {
   if (items.length === 0) return null;
 
   return (
@@ -35,7 +44,7 @@ export function TitleRail({ title, items, href, actionLabel }: TitleRailProps) {
       <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {items.map((item, index) => (
           <div key={item.id} className={CARD_WIDTH}>
-            <PosterCard item={item} priority={index === 0} />
+            <PosterCard item={item} sizes={CARD_SIZES} priority={priorityFirst && index === 0} />
           </div>
         ))}
       </div>
