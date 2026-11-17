@@ -85,6 +85,9 @@ test("admin signs in, moderates, edits, reads sync history and signs out", async
   await page.getByRole("button", { name: "Sign out" }).click();
   await expect(page).toHaveURL(/\/en\/admin\/login$/);
 
+  const cookies = await page.context().cookies();
+  expect(cookies.some((cookie) => cookie.name === "ongx_admin")).toBe(false);
+
   await page.goto("/en/admin");
   await expect(page).toHaveURL(/\/en\/admin\/login$/);
 });

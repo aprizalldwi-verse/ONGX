@@ -25,6 +25,25 @@ describe("serverEnvSchema", () => {
     const result = serverEnvSchema.safeParse({ ...validServer, NODE_ENV: "staging" });
     expect(result.success).toBe(false);
   });
+
+  it("rejects a short admin session secret", () => {
+    expect(
+      serverEnvSchema.safeParse({ ...validServer, ADMIN_SESSION_SECRET: "too-short" }).success,
+    ).toBe(false);
+    expect(
+      serverEnvSchema.safeParse({ ...validServer, ADMIN_SESSION_SECRET: "x".repeat(32) }).success,
+    ).toBe(true);
+  });
+
+  it("accepts an empty admin session secret and CSP origin list", () => {
+    const parsed = serverEnvSchema.parse({
+      ...validServer,
+      ADMIN_SESSION_SECRET: "",
+      CSP_EXTRA_ORIGINS: "",
+    });
+    expect(parsed.ADMIN_SESSION_SECRET).toBeUndefined();
+    expect(parsed.CSP_EXTRA_ORIGINS).toBeUndefined();
+  });
 });
 
 describe("publicEnvSchema", () => {
@@ -32,6 +51,28 @@ describe("publicEnvSchema", () => {
     expect(publicEnvSchema.safeParse({ NEXT_PUBLIC_SITE_URL: "not-a-url" }).success).toBe(false);
     expect(
       publicEnvSchema.safeParse({ NEXT_PUBLIC_SITE_URL: "https://ongx.example" }).success,
+    ).toBe(true);
+  });
+
+  it("only accepts http(s) ad adapter URLs", () => {
+    const base = { NEXT_PUBLIC_SITE_URL: "https://ongx.example" };
+
+    expect(
+      publicEnvSchema.safeParse({ ...base, NEXT_PUBLIC_MT_ADAPTER_URL: "javascript:alert(1)" })
+        .success,
+    ).toBe(false);
+    expect(
+      publicEnvSchema.safeParse({ ...base, NEXT_PUBLIC_MT_ADAPTER_URL: "ftp://cdn.example/tag.js" })
+        .success,
+    ).toBe(false);
+    expect(publicEnvSchema.safeParse({ ...base, NEXT_PUBLIC_MT_ADAPTER_URL: "" }).success).toBe(
+      true,
+    );
+    expect(
+      publicEnvSchema.safeParse({
+        ...base,
+        NEXT_PUBLIC_MT_ADAPTER_URL: "https://cdn.example/tag.js",
+      }).success,
     ).toBe(true);
   });
 });

@@ -368,3 +368,48 @@ dan `getAdminSession()` membaca cookie lebih dulu sebelum memeriksa secret. Alas
 tanpa `force-dynamic` halaman login sempat diprerender statis dengan status "belum
 dikonfigurasi". E2E menyuntikkan `ADMIN_SESSION_SECRET` lewat `webServer.env` dan membuat akun
 `e2e-admin` sementara agar suite tidak bergantung pada `.env.local` developer.
+
+ASUMSI-059: CSP memakai `'unsafe-inline'` untuk `script-src` (tanpa nonce/hash) dan
+`'unsafe-eval'` hanya di non-produksi. Alasan: Next menyisipkan bootstrap inline dan skrip tema
+inline agar halaman publik tetap statis/ISR tanpa FOUC; nonce memaksa seluruh halaman menjadi
+dinamis dan menaikkan biaya hosting. Mitigasi: `script-src-attr 'none'`,
+`object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'none'`. Origin adapter iklan
+(`NEXT_PUBLIC_MT_ADAPTER_URL`, divalidasi http(s)) otomatis ditambahkan; host tambahan hanya
+lewat `CSP_EXTRA_ORIGINS` (spasi/koma, hanya http(s)) agar eksposur tetap eksplisit.
+`upgrade-insecure-requests` sengaja tidak dipasang karena CSP juga dikirim di dev/e2e http;
+pemaksaan HTTPS dilakukan di proxy. HSTS hanya dikirim di produksi (ASUMSI-063).
+
+ASUMSI-060: `POST /api/report` memeriksa same-origin (`Origin` vs `Host`) lebih dulu, lalu
+content-type/ukuran (16 KiB), skema strict, dan baru rate limit. Alasan: klien non-browser tanpa
+`Origin` tetap boleh (curl/otomasi) dan mengandalkan rate limit, sedangkan browser lintas origin
+ditolak 403 sehingga halaman pihak ketiga tidak bisa memakai pengunjung untuk spam. Urutan ini
+membuat request cacat (415/413/400) tidak menghabiskan kuota 5/10 menit. `Content-Length`
+diperiksa sebelum body dibaca, lalu panjang teks hasil decode agar request tanpa
+`Content-Length` tidak melewati batas. Body server action dibatasi 512 kb karena form admin hanya
+teks. Semua respons API dan halaman admin memakai `no-store`.
+
+ASUMSI-061: Login admin dibatasi dua bucket fixed window Redis 10/15 menit: per IP
+(`ongx:admin:login:ip:<ip>`) dan per username yang di-SHA-256
+(`ongx:admin:login:user:<digest>`). Alasan: bucket IP menahan loop dari satu sumber, bucket
+identitas menahan distributed guessing dari banyak IP tanpa menyimpan nama akun mentah di Redis.
+Keduanya diperiksa paralel; fail-open bila Redis mati (sama seperti limiter publik) agar admin
+tidak terkunci saat cache down. `clientIpFromHeaders` dipakai bersama oleh report, search, dan
+login sehingga perilaku `X-Forwarded-For` konsisten; deployment wajib menimpa header itu di
+proxy (didokumentasikan di `docs/security.md`).
+
+ASUMSI-062: `pnpm.overrides` menaikkan `postcss` ke 8.5.33 (dipakai Next) dan `deepmerge-ts`
+ke 8.0.2 (dipakai `@prisma/config`) alih-alih menunggu rilis Next/Prisma. Alasan:
+`pnpm audit --prod` melaporkan 3 high + 2 moderate pada dua paket transitif tersebut, dan
+keduanya kompatibel secara API. Override diverifikasi dengan `pnpm --filter @ongx/db generate`
+dan `pnpm db:deploy` (Prisma CLI benar-benar memuat config dan merger). Script `pnpm audit`
+ditambahkan ke root agar gate mudah diulang; override ditinjau ulang setiap menaikkan
+Next/Prisma.
+
+ASUMSI-063: Header keamanan dipasang terpusat di `next.config.ts` lewat
+`src/lib/security-headers.ts`; HSTS hanya produksi; `poweredByHeader` dan
+`productionBrowserSourceMaps` dimatikan; admin mendapat `no-store` + `X-Robots-Tag: noindex`
+selain metadata `robots`. Alasan: header harus konsisten untuk semua rute (termasuk 404) tanpa
+middleware tambahan, dan HSTS di dev/e2e http akan mengunci browser lokal ke HTTPS. Source map
+browser dimatikan agar nama file internal tidak bocor; stack trace tetap di log server. Proxy
+produksi harus menimpa `X-Forwarded-For`, menangani TLS, dan tidak menambahkan cache publik untuk
+rute admin/API (lihat `docs/security.md`).

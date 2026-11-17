@@ -3,7 +3,7 @@
 Portal katalog film, series, dan anime dengan UI Indonesia-first.
 Metadata dari TMDB + AniList, pemutaran lewat provider resmi.
 
-**Status:** Phase 10 (panel admin). Lihat `PROGRESS.md`.
+**Status:** Phase 11 (hardening). Lihat `PROGRESS.md`.
 
 ## Prasyarat
 
@@ -43,6 +43,7 @@ pnpm test         # Vitest semua workspace
 pnpm format       # Prettier (tulis)
 pnpm format:check # Prettier (cek, dipakai gate)
 pnpm e2e          # Playwright smoke (butuh `pnpm build` + server/Chrome)
+pnpm audit        # audit dependensi produksi (target: 0 temuan)
 
 pnpm catalog:sync # sinkronisasi metadata TMDB + AniList
 pnpm worker       # worker BullMQ (butuh Redis); jalankan proses terpisah
@@ -122,6 +123,26 @@ sistem (`channel: "chrome"`); di CI pasang browser dengan
 untuk menguji player dengan playlist HLS lokal di `apps/web/public/test/fixtures/hls/`, plus akun
 admin sementara dan satu laporan terbuka; semuanya dihapus lagi oleh `globalTeardown`. Jalankan
 `pnpm build` dulu agar file `public/` terdaftar di server produksi.
+
+## Keamanan (Phase 11)
+
+Header keamanan dipasang terpusat dari `apps/web/src/lib/security-headers.ts` melalui
+`next.config.ts`: CSP, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`,
+`Referrer-Policy`, `Permissions-Policy`, dan `Cross-Origin-Opener-Policy`. HSTS
+(`max-age=63072000; includeSubDomains; preload`) hanya dikirim di produksi. `X-Powered-By`
+dimatikan, source map browser tidak dipublikasikan, dan body server action dibatasi 512 kb.
+
+- `POST /api/report` hanya menerima `application/json` (16 KiB, same-origin); semua respons API
+  dan halaman admin `no-store`. Admin juga mengirim `X-Robots-Tag: noindex`.
+- Login admin dibatasi 10 percobaan / 15 menit per IP **dan** per username; lihat
+  `DECISIONS.md` ASUMSI-061.
+- `NEXT_PUBLIC_MT_ADAPTER_URL` hanya boleh http(s). Bila snippet iklan memuat script dari host
+  lain, isi `CSP_EXTRA_ORIGINS` (spasi/koma) lalu rebuild; kosongkan bila tidak perlu.
+- `pnpm audit --prod` harus bersih. Override `postcss`/`deepmerge-ts` ada di root
+  `package.json` dan ditinjau setiap menaikkan Next/Prisma.
+
+Detail header, batas request, asumsi proxy/HTTPS, dan checklist operasional ada di
+`docs/security.md`.
 
 ## Struktur
 

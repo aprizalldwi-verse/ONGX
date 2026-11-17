@@ -1,18 +1,33 @@
 import { NextResponse } from "next/server";
 
 import { clientIpFromHeaders } from "@/lib/client-ip";
+import { readJsonBody } from "@/lib/http/body";
+import { isSameOrigin } from "@/lib/http/origin";
 import { prisma } from "@/lib/prisma";
 import { checkReportLimit } from "@/lib/report-rate-limit";
 import { reportSchema } from "@/lib/report-schema";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(request: Request) {
-  const body: unknown = await request.json().catch(() => null);
-  const parsed = reportSchema.safeParse(body);
+const NO_STORE = { "cache-control": "no-store" } as const;
 
+function json(body: unknown, status: number): NextResponse {
+  return NextResponse.json(body, { status, headers: NO_STORE });
+}
+
+export async function POST(request: Request) {
+  if (!isSameOrigin(request.headers)) {
+    return json({ error: "forbidden" }, 403);
+  }
+
+  const payload = await readJsonBody(request);
+  if (!payload.ok) {
+    return json({ error: payload.error }, payload.status);
+  }
+
+  const parsed = reportSchema.safeParse(payload.value);
   if (!parsed.success) {
-    return NextResponse.json({ error: "invalid" }, { status: 400 });
+    return json({ error: "invalid" }, 400);
   }
 
   const limit = await checkReportLimit(clientIpFromHeaders(request.headers));
@@ -21,7 +36,7 @@ export async function POST(request: Request) {
       { error: "rate_limited" },
       {
         status: 429,
-        headers: { "retry-after": String(limit.retryAfterSec) },
+        headers: { ...NO_STORE, "retry-after": String(limit.retryAfterSec) },
       },
     );
   }
@@ -50,8 +65,8 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("[report] create failed", error);
-    return NextResponse.json({ error: "server" }, { status: 500 });
+    return json({ error: "server" }, 500);
   }
 
-  return NextResponse.json({ ok: true }, { status: 201 });
+  return json({ ok: true }, 201);
 }

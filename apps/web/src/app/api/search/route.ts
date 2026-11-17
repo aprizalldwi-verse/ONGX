@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { clientIpFromHeaders } from "@/lib/client-ip";
 import { getRedisCache } from "@/lib/redis-cache";
 import {
   searchCacheKey,
@@ -12,12 +13,6 @@ import { checkSearchLimit } from "@/lib/search-rate-limit";
 import { searchTitles } from "@/lib/titles/queries";
 
 export const dynamic = "force-dynamic";
-
-function clientIp(request: Request): string {
-  const forwarded = request.headers.get("x-forwarded-for");
-  const first = forwarded?.split(",")[0]?.trim();
-  return first && first.length > 0 ? first : (request.headers.get("x-real-ip") ?? "unknown");
-}
 
 function parseCached(raw: string): unknown {
   try {
@@ -43,7 +38,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "invalid" }, { status: 400, headers: NO_STORE });
   }
 
-  const limit = await checkSearchLimit(clientIp(request));
+  const limit = await checkSearchLimit(clientIpFromHeaders(request.headers));
   if (!limit.allowed) {
     return NextResponse.json(
       { error: "rate_limited" },

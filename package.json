@@ -23,6 +23,7 @@
     "worker": "pnpm --filter @ongx/web run worker",
     "worker:once": "pnpm --filter @ongx/web run worker:once",
     "e2e": "pnpm --filter @ongx/web run e2e",
+    "audit": "pnpm audit --prod",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "husky"
@@ -32,6 +33,10 @@
     "*.{ts,tsx}": "eslint --fix --max-warnings=0"
   },
   "pnpm": {
+    "overrides": {
+      "postcss@<8.5.23": "8.5.33",
+      "deepmerge-ts@<8.0.0": "8.0.2"
+    },
     "onlyBuiltDependencies": [
       "@parcel/watcher",
       "@prisma/client",

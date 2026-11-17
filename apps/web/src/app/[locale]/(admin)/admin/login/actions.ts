@@ -6,7 +6,7 @@ import type { Route } from "next";
 import { redirect } from "next/navigation";
 
 import { authenticateAdmin, startAdminSession } from "@/lib/admin/auth";
-import { checkAdminLoginLimit } from "@/lib/admin/login-rate-limit";
+import { checkAdminLoginIdentity, checkAdminLoginLimit } from "@/lib/admin/login-rate-limit";
 import { adminLoginSchema } from "@/lib/admin/schemas";
 import { clientIpFromHeaders } from "@/lib/client-ip";
 import { localizedPath } from "@/lib/paths";
@@ -23,8 +23,12 @@ export async function loginAction(_previous: LoginState, formData: FormData): Pr
 
   if (!parsed.success) return { error: "invalid_input" };
 
-  const limit = await checkAdminLoginLimit(clientIpFromHeaders(await headers()));
-  if (!limit.allowed) return { error: "rate_limited" };
+  const ip = clientIpFromHeaders(await headers());
+  const [ipLimit, identityLimit] = await Promise.all([
+    checkAdminLoginLimit(ip),
+    checkAdminLoginIdentity(parsed.data.username),
+  ]);
+  if (!ipLimit.allowed || !identityLimit.allowed) return { error: "rate_limited" };
 
   let authenticated = false;
   try {

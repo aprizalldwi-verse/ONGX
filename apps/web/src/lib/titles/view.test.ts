@@ -229,6 +229,42 @@ describe("small formatters", () => {
   });
 });
 
+describe("toTitleDetail offers", () => {
+  it("drops offers whose stored URL is not absolute http(s)", () => {
+    const view = toTitleDetail(
+      detail({
+        offers: [
+          {
+            region: "ID",
+            providerId: "netflix",
+            providerName: "Netflix",
+            offerType: "FLATRATE",
+            url: "javascript:alert(1)",
+          },
+          {
+            region: "ID",
+            providerId: "apple",
+            providerName: "Apple TV",
+            offerType: "RENT",
+            url: "https://example.com/apple",
+          },
+          {
+            region: "ID",
+            providerId: "broken",
+            providerName: "Broken",
+            offerType: "FREE",
+            url: "not a url",
+          },
+        ],
+      }),
+      "id",
+    );
+
+    expect(view.offers.map((offer) => offer.providerId)).toEqual(["apple"]);
+    expect(view.offers[0]?.url).toBe("https://example.com/apple");
+  });
+});
+
 describe("toPersonView", () => {
   it("dedupes repeated credits and sorts works by year", () => {
     const works: PersonWorkRow[] = [

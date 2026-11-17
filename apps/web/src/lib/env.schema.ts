@@ -6,6 +6,19 @@ const optionalString = z
   .optional()
   .transform((value) => (value === "" ? undefined : value));
 
+/** Signing keys must be long enough to resist offline guessing. */
+const optionalSecret = optionalString.refine(
+  (value) => value === undefined || value.length >= 32,
+  "must be at least 32 characters",
+);
+
+/** Adapter URLs are loaded by the browser, so only http(s) is accepted. */
+const optionalHttpUrl = z
+  .union([z.url(), z.literal("")])
+  .optional()
+  .transform((value) => (value === "" || value === undefined ? undefined : value))
+  .refine((value) => value === undefined || /^https?:\/\//i.test(value), "must be an http(s) URL");
+
 /** Master switch for the whole ad engine. Missing/empty means "off". */
 const optionalFlag = z
   .string()
@@ -14,7 +27,7 @@ const optionalFlag = z
   .transform((value) => value === "true" || value === "1");
 
 export const publicEnvSchema = z.object({
-  NEXT_PUBLIC_MT_ADAPTER_URL: z.union([z.url(), z.literal("")]).optional(),
+  NEXT_PUBLIC_MT_ADAPTER_URL: optionalHttpUrl,
   NEXT_PUBLIC_SITE_URL: z.url(),
   NEXT_PUBLIC_ADS_ENABLED: optionalFlag,
   NEXT_PUBLIC_MT_SMART: optionalString,
@@ -36,7 +49,8 @@ export const serverEnvSchema = z.object({
   CRON_SECRET: optionalString,
   ADMIN_USER: z.string().default("admin"),
   ADMIN_PASS_HASH: optionalString,
-  ADMIN_SESSION_SECRET: optionalString,
+  ADMIN_SESSION_SECRET: optionalSecret,
+  CSP_EXTRA_ORIGINS: optionalString,
 });
 
 export type PublicEnv = z.infer<typeof publicEnvSchema>;

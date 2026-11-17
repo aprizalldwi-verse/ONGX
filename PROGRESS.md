@@ -337,7 +337,36 @@ Catatan Phase 10:
 
 ## Phase 11 — Hardening
 
-- [ ] (belum)
+- [x] Security headers terpusat (`src/lib/security-headers.ts` + `next.config.ts`): CSP,
+      `nosniff`, `X-Frame-Options`, referrer, permissions, COOP; HSTS hanya produksi
+- [x] `poweredByHeader: false`, source map browser mati, server action body cap 512 kb
+- [x] Admin/API `no-store`; admin `X-Robots-Tag: noindex` di samping metadata
+- [x] `POST /api/report`: same-origin check, `application/json` saja, batas 16 KiB, urutan
+      validasi sebelum rate limit
+- [x] Login admin: throttle per IP + per username (SHA-256), `clientIpFromHeaders` bersama
+- [x] Validasi env: `ADMIN_SESSION_SECRET` ≥ 32 karakter, adapter URL hanya http(s),
+      `CSP_EXTRA_ORIGINS`
+- [x] Filter URL offer http(s) di lapisan baca (`toTitleDetail`)
+- [x] `pnpm.overrides` postcss 8.5.33 + deepmerge-ts 8.0.2; `pnpm audit --prod` bersih
+- [x] Unit test baru (header/CSP, body limit, origin, login key, env, offer) — total 299 web
+      + 18 package (317)
+- [x] E2E security spec (header, no-store, noindex, 403/413/415) + logout cookie —
+      total 22 e2e
+- [x] `docs/security.md` + README bagian keamanan
+- [x] Gate: lint, typecheck, test, build, e2e, format:check hijau
+
+Catatan Phase 11:
+
+- CSP sengaja memakai `'unsafe-inline'` agar halaman publik tetap statis/ISR; trade-off dan
+  alternatifnya ada di ASUMSI-059 dan `docs/security.md`.
+- HSTS `preload` hanya dikirim di produksi. Domain uji yang belum terdaftar preload tetap
+  aman, tetapi pertimbangkan menurunkan `max-age` sebelum memakai domain nyata.
+- `X-Forwarded-For` dipercaya untuk rate limit; deployment wajib di belakang proxy yang
+  menimpanya. Jangan ekspos port Next langsung.
+- `pnpm audit --prod` sekarang 0 temuan (sebelumnya 3 high + 2 moderate). Override diverifikasi
+  dengan `prisma generate` dan `prisma migrate deploy` pada Prisma 6.19.3.
+- E2E dijalankan terhadap build produksi dengan Docker Postgres/Redis; suite memakai 3 worker
+  lokal (2 di CI).
 
 ## Phase 12 — Docs & deploy
 

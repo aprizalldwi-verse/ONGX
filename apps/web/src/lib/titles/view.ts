@@ -283,14 +283,30 @@ function creditView(credit: CreditRow): PersonCreditView {
   };
 }
 
-function offerView(offer: OfferRow, title: string): OfferView {
+function safeHttpUrl(value: string): string | null {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:" ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Drops offers whose stored URL is not absolute http(s). Metadata adapters
+ * validate links, but this read-layer guard also protects rows written by an
+ * older sync or a manual DB edit from becoming `javascript:` links.
+ */
+function offerView(offer: OfferRow, title: string): OfferView | null {
   const logo = imageUrl(offer.logoPath, "w92");
+  const url = safeHttpUrl(providerUrl(offer, title));
+  if (!url) return null;
 
   return {
     providerId: offer.providerId,
     providerName: offer.providerName,
     offerType: offer.offerType,
-    url: providerUrl(offer, title),
+    url,
     ...(logo !== undefined ? { logoUrl: logo } : {}),
   };
 }
@@ -402,6 +418,9 @@ export function toTitleDetail(row: TitleDetailRow, locale: string): TitleDetailV
     .sort((a, b) => a.position - b.position)
     .map(creditView);
   const seasons = seasonViews(row.episodes, row, locale);
+  const offers = row.offers
+    .map((offer) => offerView(offer, card.title))
+    .filter((offer): offer is OfferView => offer !== null);
 
   return {
     ...card,
@@ -414,7 +433,7 @@ export function toTitleDetail(row: TitleDetailRow, locale: string): TitleDetailV
     genres: row.genres.map((entry) => genreView(entry.genre, locale)),
     cast,
     crew,
-    offers: dedupeVidioOffers(sortOffers(row.offers.map((offer) => offerView(offer, card.title)))),
+    offers: dedupeVidioOffers(sortOffers(offers)),
     seasons,
     episodeCount: row.episodes.length,
     hasOwnStream: Boolean(streamUrl),

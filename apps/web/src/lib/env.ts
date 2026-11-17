@@ -13,6 +13,7 @@ const raw = {
   ADMIN_USER: process.env.ADMIN_USER,
   ADMIN_PASS_HASH: process.env.ADMIN_PASS_HASH,
   ADMIN_SESSION_SECRET: process.env.ADMIN_SESSION_SECRET,
+  CSP_EXTRA_ORIGINS: process.env.CSP_EXTRA_ORIGINS,
 } as const;
 
 const check = checkEnv(serverEnvSchema, raw);
